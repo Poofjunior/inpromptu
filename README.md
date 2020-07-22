@@ -25,43 +25,43 @@ Inpromptu creates an interactive prompt. Inpromptu is not:
 
 ## Example Time
 
-Start with a class.
+Start with a class in file such as test_drive.py.
 ```python
 class TestDrive(object):
 
-def __init__(self):
-    """initialization!"""
-    self.speed = 0
-
-honk(self):
-    """beep the horn."""
-    pass
-
-@property
-speed(self):
-    """return the vehicle speed."""
-    pass
+    def __init__(self):
+        """initialization!"""
+        self.speed = 0
+    
+    honk(self):
+        """beep the horn."""
+        pass
+    
+    @property
+    speed(self):
+        """return the vehicle speed."""
+        pass
 ```
 
 Inherit from Inpromptu. Decorate your method with `@cli_method`.
 ```python
 class TestDrive(Inpromptu):
 
-def __init__(self):
-    """initialization!"""
-    super().__init__(prompt=">>>")
-    self.speed = 0
-
-@cli_method
-honk(self):
-    """beep the horn."""
-    pass
-
-@property
-@cli_method
-speed(self):
-    """return the vehicle speed."""
-    pass
+    def __init__(self):
+        """initialization!"""
+        super().__init__(prompt=">>>")
+        self.speed = 0
+    
+    @cli_method
+    honk(self):
+        """beep the horn."""
+        pass
+    
+    @property
+    @cli_method
+    speed(self):
+        """return the vehicle speed."""
+        pass
 ```
 
 Run it!
