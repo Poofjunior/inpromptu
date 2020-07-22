@@ -21,6 +21,14 @@ class TestDrive(Inpromptu):
         """add some fuel."""
         self.gallons += gallons
 
+    @cli_method
+    def add_specs_from_user_input(self):
+        """Add specs from the user."""
+        # This in-function prompt needs custom completions.
+        self.completions = ["2", "4", "6"]
+        self.num_doors = self.input("How many doors does your vehicle have?\r\n")
+        self.completions = None
+
 
 if __name__ == "__main__":
     test_interface = TestDrive()

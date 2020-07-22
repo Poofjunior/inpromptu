@@ -56,8 +56,6 @@ class Inpromptu(object):
 
     """
     prompt = ">>> "
-    ruler = '='
-    use_rawinput = True
     complete_key = 'tab'
     DELIM = ' '
 
