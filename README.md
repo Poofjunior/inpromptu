@@ -21,47 +21,47 @@ MASH creates an interactive prompt. MASH is not:
 * Python 3.6 or later
 * classes that you wish to transform into interactive prompt sessions must inherit from the MASH object
 * methods that you wish to expose to the prompt session as commands must be decorated with the ```@cli_method``` decorator
-  * all methods that will become prompt commands must have all parameters type-hinted
+* all methods that will become prompt commands must have all parameters type-hinted
 
 ## Example Time
 
 Start with a class.
 ```python
-    class TestDrive(object):
+class TestDrive(object):
 
-    def __init__(self):
-        """initialization!"""
-        self.speed = 0
+def __init__(self):
+    """initialization!"""
+    self.speed = 0
 
-    honk(self):
-        """beep the horn."""
-        pass
+honk(self):
+    """beep the horn."""
+    pass
 
-    @property
-    speed(self):
-        """return the vehicle speed."""
-        pass
+@property
+speed(self):
+    """return the vehicle speed."""
+    pass
 ```
 
 Inherit from MASH. Decorate your method with `@cli_method`.
 ```python
-    class TestDrive(MASH):
+class TestDrive(MASH):
 
-    def __init__(self):
-        """initialization!"""
-        super().__init__(prompt=">>>")
-        self.speed = 0
+def __init__(self):
+    """initialization!"""
+    super().__init__(prompt=">>>")
+    self.speed = 0
 
-    @cli_method
-    honk(self):
-        """beep the horn."""
-        pass
+@cli_method
+honk(self):
+    """beep the horn."""
+    pass
 
-    @property
-    @cli_method
-    speed(self):
-        """return the vehicle speed."""
-        pass
+@property
+@cli_method
+speed(self):
+    """return the vehicle speed."""
+    pass
 ```
 
 Run it!
@@ -82,10 +82,10 @@ Great! Now let's demo argument completion.
 
 First, add a function with [type-hinted annotations](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html#functions) for all input arguments (except self or cls).
 ```python
-    @cli_method
-    add_fuel(self, gallons: float = 0, top_off: bool = False):
-        """Add fuel in gallons.""
-        pass
+@cli_method
+add_fuel(self, gallons: float = 0, top_off: bool = False):
+    """Add fuel in gallons.""
+    pass
 ```
 Run it!
 ```

@@ -1,6 +1,6 @@
 import setuptools
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", newline="", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
@@ -12,9 +12,11 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/poofjunior/mash",
+    license="MIT",
     keywords= ['interpreter', 'inspection'],
     packages=setuptools.find_packages(),
     classifiers=[
+        "Development Status :: 4 - Beta",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
@@ -24,5 +26,6 @@ setuptools.setup(
         "inspect",
         "readline",
         "enum",
-        "os",
+        "os"
+    ]
 )
