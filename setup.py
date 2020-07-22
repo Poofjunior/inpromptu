@@ -5,7 +5,7 @@ with open("README.md", "r", newline="", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="inpromptu",
-    version="0.0.2",
+    version="0.0.3",
     author="Joshua Vasquez",
     author_email="joshua@doublejumpelectric.com",
     description="An inferrable line oriented command prompt interpreter",

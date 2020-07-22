@@ -1,6 +1,6 @@
 #!/usr/bin/env/python3
 import pytest, autopy
-from inpromptu.inpromptu import Inpromptu, cli_method
+from inpromptu import Inpromptu, cli_method
 
 
 def test_fn_collection_on_atproperty(monkeypatch, capsys):

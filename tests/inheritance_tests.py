@@ -1,6 +1,6 @@
 #!/usr/bin/env/python3
 import pytest, autopy
-from inpromptu.inpromptu import Inpromptu, cli_method
+from inpromptu import Inpromptu, cli_method
 
 def test_normal_inheritance(monkeypatch, capsys):
     """Test that inheritance works"""
@@ -22,7 +22,7 @@ def test_normal_inheritance(monkeypatch, capsys):
     my_interface.cmdloop(loop=False)
 
     # Reply for help should print the docstring for the help function.
-    assert capsys.readouterr().out.rstrip() == TestInterface.test_at_property_method.__doc__
+    assert capsys.readouterr().out.rstrip() == TestInterface.test_method.__doc__
 
 def test_nested_inheritance(monkeypatch, capsys):
     pass
