@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/poofjunior/inpromptu",
     license="MIT",
-    keywords= ['interpreter', 'inspection'],
+    keywords= ['interpreter', 'inspection', 'prompt'],
     packages=setuptools.find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -22,10 +22,5 @@ setuptools.setup(
         "Operating System :: POSIX :: Linux",
     ],
     python_requires='>=3.6',
-    install_requires=[
-        "inspect",
-        "readline",
-        "enum",
-        "os"
-    ]
+    install_requires=[]
 )

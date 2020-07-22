@@ -118,8 +118,12 @@ OR
 ```
 In other words, arguments can be filled out by name or by position or by a combination of position first, then by name--just like how *args and **kwds behave on normal python functions.
 
-So what are you waiting for? Why not take it for a test drive?
+So what are you waiting for? Why not take it for a test drive? From the top directory, run:
+
+```
+python3 -m examples.test_drive
+```
 
 
-## About Me
+## About the Author
 Inpromptu was written by someone who used cmd.py one-too-many times. There had to be a better solution.... After writing Inpromptu, there was!
