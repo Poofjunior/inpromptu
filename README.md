@@ -80,7 +80,7 @@ honk            speed
 
 Great! Now let's demo argument completion.
 
-First, add a function with type-hinted annotations.
+First, add a function with [type-hinted annotations](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html#functions) for all input arguments (except self or cls).
 ```python
     @cli_method
     add_fuel(self, gallons: float = 0, top_off: bool = False):
@@ -93,7 +93,7 @@ python3 test_drive.py
 ```
 Start typing at the prompt
 ```
->>> add_fu
+>>> add_f
 ```
 Press tab to complete any `@cli_method` decorated function.
 ```
