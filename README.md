@@ -31,7 +31,7 @@ class TestDrive(object):
 
     def __init__(self):
         """initialization!"""
-        self.speed = 0
+        self.vehicle_speed = 0
     
     honk(self):
         """beep the horn."""
@@ -40,7 +40,7 @@ class TestDrive(object):
     @property
     speed(self):
         """return the vehicle speed."""
-        pass
+        return self.vehicle_speed
 ```
 
 Inherit from Inpromptu. Decorate your method with `@cli_method`.
@@ -50,7 +50,7 @@ class TestDrive(Inpromptu):
     def __init__(self):
         """initialization!"""
         super().__init__(prompt=">>>")
-        self.speed = 0
+        self.vehicle_speed = 0
     
     @cli_method
     honk(self):
@@ -61,7 +61,7 @@ class TestDrive(Inpromptu):
     @cli_method
     speed(self):
         """return the vehicle speed."""
-        pass
+        return self.vehicle_speed
 ```
 
 Run it!
