@@ -6,7 +6,6 @@ import readline
 from math import floor
 import os
 import pprint
-import types
 
 
 # TODO: replace input entirely with something that handles "ESC" characters and returns None.

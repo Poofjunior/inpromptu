@@ -12,11 +12,17 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/poofjunior/mash",
+    keywords= ['interpreter', 'inspection'],
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
+        "Operating System :: POSIX :: Linux",
     ],
     python_requires='>=3.6',
+    install_requires=[
+        "inspect",
+        "readline",
+        "enum",
+        "os",
 )
