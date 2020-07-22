@@ -1,11 +1,11 @@
 #!/usr/bin/env/python3
 import pytest, autopy
-from mash.mash import MASH, cli_method
+from inpromptu.inpromptu import Inpromptu, cli_method
 
 def test_normal_inheritance(monkeypatch, capsys):
     """Test that inheritance works"""
     # Create an inherited class that has a cli_method decorated class method.
-    class TestInterface(MASH):
+    class TestInterface(Inpromptu):
         def __init__(self):
             super().__init__()
 

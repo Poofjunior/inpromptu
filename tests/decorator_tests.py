@@ -1,12 +1,12 @@
 #!/usr/bin/env/python3
 import pytest, autopy
-from mash.mash import MASH, cli_method
+from inpromptu.inpromptu import Inpromptu, cli_method
 
 
 def test_fn_collection_on_atproperty(monkeypatch, capsys):
     """Test that @property decorator works"""
     # Create an inherited class that has a cli_method decorated class method.
-    class TestInterface(MASH):
+    class TestInterface(Inpromptu):
         def __init__(self):
             super().__init__()
 
@@ -30,7 +30,7 @@ def test_fn_collection_on_atproperty(monkeypatch, capsys):
 def test_fn_collection_on_class_method(monkeypatch, capsys):
     """Test that classmethod works"""
     # Create an inherited class that has a cli_method decorated class method.
-    class TestInterface(MASH):
+    class TestInterface(Inpromptu):
         def __init__(self):
             super().__init__()
 
