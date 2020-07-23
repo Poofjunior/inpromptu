@@ -12,19 +12,17 @@ def test_fn_collection_on_atproperty(monkeypatch, capsys):
 
         @property
         @cli_method
-        def test_at_property_method(cls):
+        def at_property_method(self):
             """dummy docstring."""
             pass
 
     def user_input_response(prompt):
-        return "help test_at_property_method\r\n"
+        return "at_property_method\r\n"
     monkeypatch.setattr('builtins.input', user_input_response)
 
     my_interface = TestInterface()
     my_interface.cmdloop(loop=False)
-
-    # Reply for help should print the docstring for the help function.
-    assert capsys.readouterr().out.rstrip() == TestInterface.test_at_property_method.__doc__
+    # This should not raise an exception.
 
 
 def test_fn_collection_on_class_method(monkeypatch, capsys):

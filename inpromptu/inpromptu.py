@@ -45,8 +45,8 @@ def print_columnized_list(my_list, column_width=None):
 
 
 class Inpromptu(object):
-    """The MAchine SHell
-    A framework for inferring line-oriented command interpreters.
+    """The Introspective Prompt
+    A framework for inferring line-oriented command prompts.
 
     These are often useful for providing a bare-bones interface to various
     real-world devices or other software tools.
@@ -62,10 +62,18 @@ class Inpromptu(object):
 
     def __init__(self):
         """collect functions."""
-        self.cli_methods = self._get_cli_methods()
+        # Containers for methods and their signatures.
+        # Methods decorated with @property become property objects which can
+        # contain up to 3 methods: fget, fset, and fdel.
+        # From the user perspective, fget and fset have the same name, but
+        # different signature, so we hold onto all properties so that we can
+        # invoke fgets separately.
+        self.cli_methods, self.property_getters = self._get_cli_methods()
         self.cli_method_definitions = self._get_cli_method_definitions()
         #import pprint
         #pprint.pprint(self.cli_method_definitions)
+        #pprint.pprint(self.cli_methods)
+        #pprint.pprint(self.property_getters)
 
         # In-function completions for calling input() within a fn.
         # Note that this variable must be cleared when finished with it.
@@ -75,6 +83,7 @@ class Inpromptu(object):
 
     def _get_cli_methods(self):
         cli_methods = {}
+        property_getters = {}
 
         # Collect all methods that have the is_cli_method as an attribute
         #cli_methods = {m[0]:m[1] for m in getmembers(self)
@@ -90,19 +99,26 @@ class Inpromptu(object):
             raise AttributeError
 
         for name in dir(self):
+            #print(name)
             value = get_dict_attr(self, name)
+            # Special case properties, which may be tied to 2 relevant methods.
+            if isinstance(value, property):
+                if hasattr(value.fset, 'is_cli_method'):
+                    cli_methods[name] = value.fset
+                if hasattr(value.fget, 'is_cli_method'):
+                    # Store the getter elsewhere to prevent name clash
+                    property_getters[name] = value.fget
+                continue
             if isinstance(value, classmethod):
                 value = value.__func__
-            if isinstance(value, property):
-                value = value.fget
             if hasattr(value, 'is_cli_method'):
                 cli_methods[name] = value
 
-        return cli_methods
+        return cli_methods, property_getters
 
 
     def _get_cli_method_definitions(self):
-        """Build method definitions. Thank you Jacob!
+        """Build method definitions.
 
         Returns:
             Dictionary of method names mapped to their definitions.
@@ -292,17 +308,14 @@ class Inpromptu(object):
 
 
     def cmdloop(self, loop=True):
-        """Repeatedly issue a prompt, accept input, parse an initial prefix
-        off the received input, and dispatch to action methods, passing them
-        the remainder of the line as argument.
-
+        """Repeatedly issue a prompt, accept input, and dispatch to action
+        methods, passing them the line remainder as argument.
         """
 
         readline.set_completer(self.complete)
         readline.set_completion_display_matches_hook(self._match_display_hook)
         readline.parse_and_bind(f"{self.__class__.complete_key}: complete")
-        stop = False
-        while not stop:
+        while True:
             try:
                 line = self.input()
                 if line == "":
@@ -314,9 +327,26 @@ class Inpromptu(object):
                 no_more_args = False # indicates end of positional args in fn signature
 
                 # Check if fn even exists.
-                if fn_name not in self.cli_method_definitions:
-                    raise UserInputError(f"Error: {fn_name} is not a valid "
-                                          "command.")
+                if fn_name not in self.cli_methods and fn_name not in self.property_getters:
+                    raise UserInputError(f"Error: {fn_name} is not a valid command.")
+
+                # Shortcut for @property getters which have no parameters.
+                if len(arg_blocks) == 0 and fn_name in self.property_getters:
+                    return_val = None
+                    try:
+                        return_val = self.property_getters[fn_name](self)
+                    except Exception as e:
+                        print(f"{fn_name} raised an excecption while being executed.")
+                        print(e)
+                    # Reset any completions set during this function.
+                    finally:
+                        self.completions = None
+                    if return_val is not None:
+                        pprint.pprint(return_val)
+                    if not loop:
+                        return
+                    else:
+                        continue
 
                 param_count = len(self.cli_method_definitions[fn_name]['param_order'])
                 param_order = self.cli_method_definitions[fn_name]['param_order']
@@ -324,7 +354,6 @@ class Inpromptu(object):
                 if self.cli_method_definitions[fn_name]['param_order'][0] in ['self', 'cls']:
                     param_count -= 1
                     param_order = param_order[1:]
-
                 # Ensure required arg count is met.
                 if len(arg_blocks) > param_count:
                     raise UserInputError("Error: too many positional arguments.")
@@ -369,6 +398,9 @@ class Inpromptu(object):
                 except Exception as e:
                     print(f"{fn_name} raised an excecption while being executed.")
                     print(e)
+                # Reset any completions set during this function.
+                finally:
+                    self.completions = None
                 if return_val is not None:
                     pprint.pprint(return_val)
             except (EOFError, UserInputError) as e:
@@ -388,7 +420,21 @@ class Inpromptu(object):
             print(self.help.__doc__)
             return
         try:
-            print(self.cli_method_definitions[func_name]["doc"])
+            # Special cases properties to print both fget and fset docstrings.
+            if func_name in self.property_getters: #Check if we have an @property
+                print("Without parameters:")
+                print("  ", self.property_getters[func_name].__doc__)
+                print("With parameters:")
+                try:
+                    print("  ", self.cli_method_definitions[func_name]["doc"])
+                except KeyError:
+                    print()
+                return
+
+            # Normal case.
+            if func_name in self.cli_methods:
+                print(self.cli_method_definitions[func_name]["doc"])
+                return
         except KeyError:
             print(f"Error: method {func_name} is not a valid command.")
 

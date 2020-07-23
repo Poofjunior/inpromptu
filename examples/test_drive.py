@@ -16,6 +16,12 @@ class TestDrive(Inpromptu):
         """return the current speed."""
         return self.vehicle_speed
 
+    @speed.setter
+    @cli_method
+    def speed(self, speed: float = 0):
+        """Set the current speed"""
+        self.vehicle_speed = speed
+
     @cli_method
     def add_fuel(self, gallons: float = 0, top_off: bool = False):
         """add some fuel."""
@@ -27,7 +33,6 @@ class TestDrive(Inpromptu):
         # This in-function prompt needs custom completions.
         self.completions = ["2", "4", "6"]
         self.num_doors = self.input("How many doors does your vehicle have?\r\n")
-        self.completions = None
 
 
 if __name__ == "__main__":

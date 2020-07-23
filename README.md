@@ -118,6 +118,17 @@ OR
 ```
 In other words, arguments can be filled out by name or by position or by a combination of position first, then by name--just like how *args and **kwds behave on normal python functions.
 
+Last demo. Tab completion can be inferred automatically by the function signature. But what if you need to change it mid-function to suggest user input? No prob. Just add it to the completions list
+
+```python
+add_specs_from_user(self):
+    """Add specs from user.""
+    self.completions = ["2", "4", "6"]
+    self.door_count = self.input("How many doors does this vehicle have?")
+```
+"Tabbing" for completions will render this list which is cleared when the function finishes executing.
+
+
 So what are you waiting for? Why not take it for a test drive? From the top directory, run:
 
 ```
