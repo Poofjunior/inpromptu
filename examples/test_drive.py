@@ -9,6 +9,7 @@ class TestDrive(Inpromptu):
         super().__init__()
         self.vehicle_speed = 0
         self.gallons = 0
+        self.num_doors = 0
 
     @property
     @cli_method
@@ -32,7 +33,13 @@ class TestDrive(Inpromptu):
         """Add specs from the user."""
         # This in-function prompt needs custom completions.
         self.completions = ["2", "4", "6"]
-        self.num_doors = self.input("How many doors does your vehicle have?\r\n")
+        self.num_doors = int(self.input("How many doors does your vehicle have?\r\n"))
+
+    @property
+    @cli_method
+    def door_count(self):
+        """The number of doors."""
+        return self.num_doors
 
 
 if __name__ == "__main__":

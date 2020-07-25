@@ -69,6 +69,7 @@ class Inpromptu(object):
         # different signature, so we hold onto all properties so that we can
         # invoke fgets separately.
         self.cli_methods, self.property_getters = self._get_cli_methods()
+        self.callables = set({**self.cli_methods, **self.property_getters}.keys())
         self.cli_method_definitions = self._get_cli_method_definitions()
         #import pprint
         #pprint.pprint(self.cli_method_definitions)
@@ -249,7 +250,7 @@ class Inpromptu(object):
         if len(cmd_with_args) == 0 or \
             (len(cmd_with_args) == 1 and line[-1] is not self.__class__.DELIM):
             # Return matches but omit match if it is fully-typed.
-            results = [fn for fn in self.cli_methods.keys() if fn.startswith(text) and fn != text]
+            results = [fn for fn in self.callables if fn.startswith(text) and fn != text]
             return results[state]
 
         # Complete the fn params.
@@ -327,10 +328,12 @@ class Inpromptu(object):
                 no_more_args = False # indicates end of positional args in fn signature
 
                 # Check if fn even exists.
-                if fn_name not in self.cli_methods and fn_name not in self.property_getters:
+                if fn_name not in self.callables:
                     raise UserInputError(f"Error: {fn_name} is not a valid command.")
 
-                # Shortcut for @property getters which have no parameters.
+                # Shortcut for @property getters which have no parameters and
+                # whose function pointers are stored elsewhere to prevent name
+                # name clashing with their setters.
                 if len(arg_blocks) == 0 and fn_name in self.property_getters:
                     return_val = None
                     try:

@@ -122,7 +122,7 @@ Last demo. Tab completion can be inferred automatically by the function signatur
 
 ```python
 add_specs_from_user(self):
-    """Add specs from user.""
+    """Add specs from user."""
     self.completions = ["2", "4", "6"]
     self.door_count = self.input("How many doors does this vehicle have?")
 ```
