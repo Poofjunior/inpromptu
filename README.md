@@ -1,9 +1,11 @@
 ## Inpromptu
-A library for automatically inferring interactive prompts.
+A library for inferring interactive prompts from object instances.
 
 
 ### What Inpromptu Is
 Inpromptu is a near-direct replacement for Python's built-in [cmd.py](https://docs.python.org/3/library/cmd.html) utility.
+Rather than rewrite an additional interface class with special `do_` methods, Inpromptu infers the prompt from the class directly.
+Inpromptu will take an object instances callables and expose them in a read-evaluate-print-loop that supports tab-completion.
 
 Born from a need to quickly interact with real-world devices and a frustration from the manual overhead of cmd.py, Inpromptu automatically generates an interactive prompt session by taking advantage of Python's type hinting and introspection capabilities. Features include
 
@@ -15,53 +17,48 @@ Born from a need to quickly interact with real-world devices and a frustration f
 ### What Inpromptu Isn't
 Inpromptu creates an interactive prompt. Inpromptu is not:
 * a command line interface generator. See [argparse](https://docs.python.org/3/library/argparse.html), [python-fire](https://github.com/google/python-fire), or [click](https://click.palletsprojects.com/en/7.x/) for that.
-* a direct api-replacement for cmd.py. There are minor differences. Have a go at the examples.
+* a api-replacement for cmd.py. There are some differences. Have a go at the examples.
 
 ## Requirements
-* Python 3.6 or later
-* classes that you wish to transform into interactive prompt sessions must inherit from the Inpromptu object
-* methods that you wish to expose to the prompt session as commands must be decorated with the ```@cli_method``` decorator
-* all methods that will become prompt commands must have all parameters type-hinted
+* Python 3.7 or later
+* all methods that will support completion must have all parameters type-hinted
+
+## Installation
+You can install this latest stable version of this package from PyPI with
+````
+pip install inpromptu
+````
+
+Or you can clone this repository and, from within this directory, install inpromptu in *editable* mode with
+````
+pip install -e .
+````
 
 ## Example Time
 
 Start with a class in file such as test_drive.py.
 ```python
-class TestDrive(object):
+class TestDrive:
 
     def __init__(self):
         """initialization!"""
         self.vehicle_speed = 0
-    
+
     honk(self):
         """beep the horn."""
         pass
-    
-    @property
+
     speed(self):
         """return the vehicle speed."""
         return self.vehicle_speed
 ```
 
-Inherit from Inpromptu. Decorate your method with `@cli_method`.
+Create a promt with Inpromptu.
 ```python
-class TestDrive(Inpromptu):
+from inpromptu import Inpromptu
 
-    def __init__(self):
-        """initialization!"""
-        super().__init__(prompt=">>>")
-        self.vehicle_speed = 0
-    
-    @cli_method
-    honk(self):
-        """beep the horn."""
-        pass
-    
-    @property
-    @cli_method
-    speed(self):
-        """return the vehicle speed."""
-        return self.vehicle_speed
+my_prompt = Inpromtu(TestDrive)
+my_prompt.cmdloop()
 ```
 
 Run it!
@@ -72,7 +69,7 @@ This should produce a prompt:
 ```
 >>>
 ```
-Press tab twice to show all your `@cli_method` decorated arguments.
+Press tab twice to show all your callable attributes.
 ```
 honk            speed
 >>>
@@ -135,6 +132,13 @@ So what are you waiting for? Why not take it for a test drive? From the top dire
 python3 -m examples.test_drive
 ```
 
+## FAQs
+### Why not just use the python shell?
+You could! Inpromptu is intented to be a bit more minimalistic and user-friendly.
+Inpromptu can be used as a minimalistic UI on its own.
+
+Core elements of Inpromptu can also be hooked directly into [Python Prompt Toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/) to provide the same kind of object-based completions with richer prompt features.
 
 ## About the Author
-Inpromptu was written by someone who used cmd.py one-too-many times. There had to be a better solution.... After writing Inpromptu, there was!
+Inpromptu was written by someone who used cmd.py one-too-many times. There had to be a better solution.
+And Inpromptu is one of many.

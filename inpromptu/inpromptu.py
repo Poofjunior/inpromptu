@@ -1,180 +1,24 @@
-#!/usr/bin/env/python3
-"""An inheritable command line interface generator inspired by cmd.py."""
-from inspect import getmembers, ismethod, signature
-from enum import Enum
+#!/usr/bin/env python3
+"""Class for ."""
 import readline
-from math import floor
-import os
-import pprint
 
+from .object_method_manager import ObjectMethodManager
+from .errors import UserInputError
 
-# TODO: replace input entirely with something that handles "ESC" characters and returns None.
-# TODO: enable tab completion for string input with limited scope of opions. (Custom enums?)
-# TODO: enable tab completion for help
-# TODO: test negative number int input
-# TODO: implement completion for setter @property decorators.
+class Inpromptu:
+    """Inspects an object recursively and enables the invoking of any attribute's methods."""
 
-def cli_method(func):
-    """Decorator to register method as available to the CLI."""
-    func.is_cli_method = True
-    #setattr(func, 'is_cli_method', True)
-    return func
+    prompt = '>>>'
+    complete_key = '<tab>'
 
-class UserInputError(Exception):
-    """Base exception for user inputting something incorrectly."""
-    pass
-
-
-def print_columnized_list(my_list, column_width=None):
-    """Prints a list as a set of columns, maximizing screen space."""
-    if column_width is None:
-        _, column_width = map(int, os.popen('stty size', 'r').read().split())
-    max_string_len = max(map(len, my_list)) + 1 # add 1 for minimum whitespace.
-    column_count = floor(column_width/max_string_len)
-    list_iter = iter(my_list)
-    list_item = next(list_iter)
-    try:
-        while True:
-            for i in range(column_count):
-                # Print item; fill the remaining column block with whitespace.
-                print(f"{list_item:<{max_string_len}}", end="")
-                list_item = next(list_iter)
-            print()
-    except StopIteration:
-        pass # Done printing.
-
-
-class Inpromptu(object):
-    """The Introspective Prompt
-    A framework for inferring line-oriented command prompts.
-
-    These are often useful for providing a bare-bones interface to various
-    real-world devices or other software tools.
-
-    This class should be inheritted by the class that requires an interface.
-    You may expose methods by decorating them with the cli_method decorator.
-
-    """
-    prompt = ">>> "
-    complete_key = 'tab'
-    DELIM = ' '
-
-
-    def __init__(self):
-        """collect functions."""
-        # Containers for methods and their signatures.
-        # Methods decorated with @property become property objects which can
-        # contain up to 3 methods: fget, fset, and fdel.
-        # From the user perspective, fget and fset have the same name, but
-        # different signature, so we hold onto all properties so that we can
-        # invoke fgets separately.
-        self.cli_methods, self.property_getters = self._get_cli_methods()
-        self.callables = set({**self.cli_methods, **self.property_getters}.keys())
-        self.cli_method_definitions = self._get_cli_method_definitions()
-        #import pprint
-        #pprint.pprint(self.cli_method_definitions)
-        #pprint.pprint(self.cli_methods)
-        #pprint.pprint(self.property_getters)
+    def __init__(self, class_instance):
+        """Constructor."""
+        self.omm = ObjectMethodManager(class_instance)
 
         # In-function completions for calling input() within a fn.
         # Note that this variable must be cleared when finished with it.
         self.completions = None
         self.prompt = self.__class__.prompt
-
-
-    def _get_cli_methods(self):
-        cli_methods = {}
-        property_getters = {}
-
-        # Collect all methods that have the is_cli_method as an attribute
-        #cli_methods = {m[0]:m[1] for m in getmembers(self)
-        #                if ismethod(getattr(self, m[0]))
-        #                and hasattr(m[1], 'is_cli_method')}
-
-        # Workaround because getmembers does not get functions decorated with @property
-        # https://stackoverflow.com/questions/3681272/can-i-get-a-reference-to-a-python-property
-        def get_dict_attr(obj, attr):
-            for obj in [obj] + obj.__class__.mro():
-                if attr in obj.__dict__:
-                    return obj.__dict__[attr]
-            raise AttributeError
-
-        for name in dir(self):
-            #print(name)
-            value = get_dict_attr(self, name)
-            # Special case properties, which may be tied to 2 relevant methods.
-            if isinstance(value, property):
-                if hasattr(value.fset, 'is_cli_method'):
-                    cli_methods[name] = value.fset
-                if hasattr(value.fget, 'is_cli_method'):
-                    # Store the getter elsewhere to prevent name clash
-                    property_getters[name] = value.fget
-                continue
-            if isinstance(value, classmethod):
-                value = value.__func__
-            if hasattr(value, 'is_cli_method'):
-                cli_methods[name] = value
-
-        return cli_methods, property_getters
-
-
-    def _get_cli_method_definitions(self):
-        """Build method definitions.
-
-        Returns:
-            Dictionary of method names mapped to their definitions.
-        """
-        definitions = {}
-
-        for method_name, method in self.cli_methods.items():
-            parameters = {}
-            param_order = []
-            sig = signature(method)
-
-            # FIXME: how does this code handle functions wrapped in decorators??
-            # Collapse to the function any wrapped functions.
-            # This works only for function decorator wrappers using
-            # functools.wraps to do the wrapping
-            #while hasattr(method, "__wrapped__"):
-            #    method = method.__wrapped__
-
-            for parameter_name in sig.parameters:
-                param_order.append(parameter_name)
-                parameter = {}
-                parameter_type = None
-                parameter_sig = sig.parameters[parameter_name]
-                if parameter_sig.annotation is not parameter_sig.empty:
-                    parameter_type = parameter_sig.annotation
-                parameter['type'] = parameter_type if parameter_type is not None else None
-
-
-                # Enforce type hinting for all decoorated methods.
-                if parameter['type'] is None and parameter_name not in ['self', 'cls']:
-                    raise SyntaxError(f"Error: {method_name} must be type hinted. \
-                                        Cannot infer type for arg: {parameter_name}.")
-
-                # Check for defaults.
-                if parameter_sig.default is not parameter_sig.empty:
-                    parameter["default"] = parameter_sig.default
-                elif parameter_name == 'self':
-                    parameter["default"] = self
-                elif parameter_name == 'cls':
-                    parameter["default"] = self.__class__
-
-                # Check for Enum types.
-                if parameter_type is not None and issubclass(parameter_type, Enum):
-                    parameter["type"] = "Enum"
-                    parameter["options"] = list(parameter_type.__members__.keys())
-
-                parameters[parameter_name] = parameter
-
-            definitions[method_name] = {
-                "param_order": param_order,
-                "parameters": parameters,
-                "doc": method.__doc__
-            }
-
-        return definitions
 
 
     def _match_display_hook(self, substitution, matches, longest_match_length):
@@ -200,14 +44,14 @@ class Inpromptu(object):
             print_columnized_list(matches)
         # Render Function Args:
         else:
-            param_order = [f"{x}=" for x in self.cli_method_definitions[self.func_name]['param_order']]
+            param_order = [f"{x}=" for x in self.omm.cli_method_definitions[self.func_name]['param_order']]
             # matches arrive alphebatized. Specify order according to original.
             matches = sorted(matches, key=lambda x: param_order.index(x))
             # Render argument matches with type.
             # Track argument index such that we only display valid options.
             for arg_completion in matches:
                 arg = arg_completion.split("=")[0]
-                arg_type = self.cli_method_definitions[self.func_name]['parameters'][arg]['type']
+                arg_type = self.omm.cli_method_definitions[self.func_name]['parameters'][arg]['type']
                 print(f"{arg}=<{arg_type.__name__}>", end=" ")
         print()
         print(self.prompt, readline.get_line_buffer(), sep='', end='', flush=True)
@@ -250,13 +94,13 @@ class Inpromptu(object):
         if len(cmd_with_args) == 0 or \
             (len(cmd_with_args) == 1 and line[-1] is not self.__class__.DELIM):
             # Return matches but omit match if it is fully-typed.
-            results = [fn for fn in self.callables if fn.startswith(text) and fn != text]
+            results = [fn for fn in self.omm.callables if fn.startswith(text) and fn != text]
             return results[state]
 
         # Complete the fn params.
         self.func_name = cmd_with_args[0]
         param_signature = cmd_with_args[1:]
-        self.func_params = self.cli_method_definitions[self.func_name]['param_order']
+        self.func_params = self.omm.cli_method_definitions[self.func_name]['param_order']
         if self.func_params[0] in ['self', 'cls']:
             self.func_params = self.func_params[1:]
 
@@ -328,16 +172,16 @@ class Inpromptu(object):
                 no_more_args = False # indicates end of positional args in fn signature
 
                 # Check if fn even exists.
-                if fn_name not in self.callables:
+                if fn_name not in self.omm.callables:
                     raise UserInputError(f"Error: {fn_name} is not a valid command.")
 
                 # Shortcut for @property getters which have no parameters and
                 # whose function pointers are stored elsewhere to prevent name
                 # name clashing with their setters.
-                if len(arg_blocks) == 0 and fn_name in self.property_getters:
+                if len(arg_blocks) == 0 and fn_name in self.omm.property_getters:
                     return_val = None
                     try:
-                        return_val = self.property_getters[fn_name](self)
+                        return_val = self.omm.property_getters[fn_name](self)
                     except Exception as e:
                         print(f"{fn_name} raised an excecption while being executed.")
                         print(e)
@@ -351,10 +195,10 @@ class Inpromptu(object):
                     else:
                         continue
 
-                param_count = len(self.cli_method_definitions[fn_name]['param_order'])
-                param_order = self.cli_method_definitions[fn_name]['param_order']
+                param_count = len(self.omm.cli_method_definitions[fn_name]['param_order'])
+                param_order = self.omm.cli_method_definitions[fn_name]['param_order']
                 # Remove self or cls from param count and arg list.
-                if self.cli_method_definitions[fn_name]['param_order'][0] in ['self', 'cls']:
+                if self.omm.cli_method_definitions[fn_name]['param_order'][0] in ['self', 'cls']:
                     param_count -= 1
                     param_order = param_order[1:]
                 # Ensure required arg count is met.
@@ -376,12 +220,12 @@ class Inpromptu(object):
                                  "specified before any keyword arguments.")
                         arg_name = param_order[arg_index]
                         val_str = arg_block
-                    val = self.cli_method_definitions[fn_name]['parameters'][arg_name]['type'](val_str)
+                    val = self.omm.cli_method_definitions[fn_name]['parameters'][arg_name]['type'](val_str)
                     kwargs[arg_name] = val
 
                 # Populate missing params with their defaults.
                 # Raise error if are required param is missing.
-                kwarg_settings = self.cli_method_definitions[fn_name]['parameters']
+                kwarg_settings = self.omm.cli_method_definitions[fn_name]['parameters']
                 missing_kwargs = []
                 for key, val in kwarg_settings.items():
                     if key not in kwargs:
@@ -397,7 +241,7 @@ class Inpromptu(object):
                 # Invoke the fn.
                 return_val = None
                 try:
-                    return_val = self.cli_methods[fn_name](**kwargs)
+                    return_val = self.omm.cli_methods[fn_name](**kwargs)
                 except Exception as e:
                     print(f"{fn_name} raised an excecption while being executed.")
                     print(e)
@@ -414,30 +258,4 @@ class Inpromptu(object):
                 return
             if not loop:
                 return
-
-
-    @cli_method
-    def help(self, func_name: str = None):
-        """Display usage for a particular function."""
-        if func_name is None:
-            print(self.help.__doc__)
-            return
-        try:
-            # Special cases properties to print both fget and fset docstrings.
-            if func_name in self.property_getters: #Check if we have an @property
-                print("Without parameters:")
-                print("  ", self.property_getters[func_name].__doc__)
-                print("With parameters:")
-                try:
-                    print("  ", self.cli_method_definitions[func_name]["doc"])
-                except KeyError:
-                    print()
-                return
-
-            # Normal case.
-            if func_name in self.cli_methods:
-                print(self.cli_method_definitions[func_name]["doc"])
-                return
-        except KeyError:
-            print(f"Error: method {func_name} is not a valid command.")
 

@@ -5,7 +5,7 @@ with open("README.md", "r", newline="", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="inpromptu",
-    version="0.0.5",
+    version="0.1.0",
     author="Joshua Vasquez",
     author_email="joshua@doublejumpelectric.com",
     description="An inferrable line oriented command prompt interpreter",
@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/poofjunior/inpromptu",
     license="MIT",
-    keywords= ['interpreter', 'inspection', 'prompt'],
+    keywords= ['interpreter', 'inspection', 'prompt', 'repl'],
     packages=setuptools.find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -22,5 +22,5 @@ setuptools.setup(
         "Operating System :: POSIX :: Linux",
     ],
     python_requires='>=3.6',
-    install_requires=[]
+    install_requires=['prompt-toolkit>=3.0.28']
 )
