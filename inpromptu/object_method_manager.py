@@ -60,7 +60,6 @@ class ObjectManager:
 
 class ObjectMethodManager:
     """Inspects an object and aggregates its callable methods."""
-    DELIM = ' '
 
 
     def __init__(self, class_instance, *args, method_ignore_list=[], **kwargs):
@@ -78,9 +77,9 @@ class ObjectMethodManager:
         self.cli_methods, self.property_getters = self._get_cli_methods(method_ignore_list)
         self.callables = set({**self.cli_methods, **self.property_getters}.keys())
         self.cli_method_definitions = self._get_cli_method_definitions()
-        #import pprint
-        #pprint.pprint(self.cli_methods)
-        #pprint.pprint(self.cli_method_definitions):
+        import pprint
+        pprint.pprint(self.cli_methods)
+        pprint.pprint(self.cli_method_definitions)
 
 
     def _get_cli_methods(self, method_ignore_list = []):
@@ -154,9 +153,9 @@ class ObjectMethodManager:
                 if parameter_sig.default is not parameter_sig.empty:
                     parameter["default"] = parameter_sig.default
                 elif parameter_name == 'self':
-                    parameter["default"] = self
+                    parameter["default"] = self.class_instance
                 elif parameter_name == 'cls':
-                    parameter["default"] = self.__class__
+                    parameter["default"] = self.class_instance.__class__
 
                 # Check for Enum types.
                 if parameter_type is not None and issubclass(parameter_type, Enum):
@@ -173,40 +172,3 @@ class ObjectMethodManager:
 
         return definitions
 
-
-## For Testing!!!
-class MyClassB:
-
-        def __init__(self):
-            self.num = 0
-            self.classc = MyClassC()
-            # TODO: do we want to handle this case? We'll say no for now.
-            self.more_callables = [MyClassC(), MyClassC()]
-
-        def my_sub_func(self):
-            return 0
-
-class MyClassC:
-
-        def __init__(self):
-            self.num = 0
-
-#        def my_sub_func(self):
-#            return 0
-#
-
-class MyClassA:
-
-    def __init__(self):
-        self.classb = MyClassB()
-        self.my_num = 0
-        self.my_list = list(range(3))
-
-    def my_func(self):
-        pass
-
-
-
-if __name__ == "__main__":
-    om = ObjectManager(MyClassA())
-    #omm = ObjectMethodManager(MyClassA())

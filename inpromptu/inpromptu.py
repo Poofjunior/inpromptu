@@ -1,15 +1,45 @@
 #!/usr/bin/env python3
 """Class for ."""
 import readline
+import pprint
+import os
+from math import floor
+import traceback
 
 from .object_method_manager import ObjectMethodManager
 from .errors import UserInputError
+
+
+# helper function for displaying completions.
+def print_columnized_list(my_list):
+    """Prints a list as a set of columns, maximizing screen space."""
+    max_string_len = max(map(len, my_list)) + 1 # add 1 for minimum whitespace.
+    _, window_width = map(int, os.popen('stty size', 'r').read().split())
+    # Longest string and window width dictate columnized printing output
+    # Either we have multiple rows worth of printing, or we have a single
+    # row spread out across the whole window.
+    text_fits_on_one_row = max_string_len * len(my_list) < window_width
+    column_count = len(my_list) if text_fits_on_one_row else floor(window_width/max_string_len)
+    column_width = floor(window_width/len(my_list)) if text_fits_on_one_row else max_string_len
+    list_iter = iter(my_list)
+    list_item = next(list_iter)
+    try:
+        while True:
+            for i in range(column_count):
+                # Print item; fill the remaining column block with whitespace.
+                print(f"{list_item:<{column_width}}", end="")
+                list_item = next(list_iter)
+            print()
+    except StopIteration:
+        pass # Done printing.
+
 
 class Inpromptu:
     """Inspects an object recursively and enables the invoking of any attribute's methods."""
 
     prompt = '>>>'
-    complete_key = '<tab>'
+    complete_key = 'tab'
+    DELIM = ' '
 
     def __init__(self, class_instance):
         """Constructor."""
@@ -22,9 +52,23 @@ class Inpromptu:
 
 
     def _match_display_hook(self, substitution, matches, longest_match_length):
+        """_match_display_hook wrapper so we can at least read the exception.
+
+        As called by readline, exceptions called in _match_display_hook will not
+        be caught in the main thread.
+        """
+
+        try:
+            return self.__match_display_hook(substitution, matches, longest_match_length)
+        except Exception as e:
+            traceback.print_exc()
+
+
+    def __match_display_hook(self, substitution, matches, longest_match_length):
         """Display custom response when invoking tab completion."""
         # Warning: exceptions raised in this fn are not catchable.
         # This issue is connected to the readline implementation.
+
         line = readline.get_line_buffer() # entire line of entered text so far.
         cmd_with_args = line.split()
         print()
@@ -69,6 +113,19 @@ class Inpromptu:
 
 
     def complete(self, text, state, *args, **kwargs):
+        """_complete wrapper so we can at least read the exceptions.
+
+        As called by readline, exceptions called in complete will not be caught
+        in the main thread.
+        """
+        try:
+            return self._complete(text, state, *args, **kwargs)
+        except Exception as e:
+            traceback.print_exc()
+
+
+
+    def _complete(self, text, state, *args, **kwargs):
         """function invoked for completing partially-entered text.
         Formatted according to readline's set_completer spec:
         https://docs.python.org/3/library/readline.html#completion
@@ -77,7 +134,7 @@ class Inpromptu:
 
         Note: this fn gets called by readline really weirdly.
         This fn gets called repeatedly with increasing values of state until
-        the fn returns None.
+        the fn returns None (or throws an exception).
         """
         # Warning: exceptions raised in this fn are not catchable.
 
@@ -95,7 +152,11 @@ class Inpromptu:
             (len(cmd_with_args) == 1 and line[-1] is not self.__class__.DELIM):
             # Return matches but omit match if it is fully-typed.
             results = [fn for fn in self.omm.callables if fn.startswith(text) and fn != text]
-            return results[state]
+            try:
+                return results[state]
+            except IndexError:
+                return None
+
 
         # Complete the fn params.
         self.func_name = cmd_with_args[0]
@@ -149,7 +210,10 @@ class Inpromptu:
             if completion.startswith(text) and not skip:
                 func_param_completions.append(completion)
 
-        return func_param_completions[state]
+        try:
+            return func_param_completions[state]
+        except IndexError:
+            return None
 
 
     def cmdloop(self, loop=True):
@@ -163,7 +227,7 @@ class Inpromptu:
         while True:
             try:
                 line = self.input()
-                if line == "":
+                if line.lstrip() == "":
                     continue
                 ## Extract fn and args.
                 fn_name, *arg_blocks = line.split()
@@ -181,7 +245,10 @@ class Inpromptu:
                 if len(arg_blocks) == 0 and fn_name in self.omm.property_getters:
                     return_val = None
                     try:
-                        return_val = self.omm.property_getters[fn_name](self)
+                        this = self.omm.class_instance
+                        # FIXME: how should we implement this?
+                        #return_val = self.omm.property_getters[fn_name](self)
+                        return_val = self.omm.property_getters[fn_name](this)
                     except Exception as e:
                         print(f"{fn_name} raised an excecption while being executed.")
                         print(e)
