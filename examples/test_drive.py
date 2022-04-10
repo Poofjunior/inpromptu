@@ -1,5 +1,5 @@
-#!/usr/bin/env/python3
-from inpromptu import Inpromptu, UserInputError
+#!/usr/bin/env python3
+from inpromptu import Inpromptu
 
 
 class TestDrive:

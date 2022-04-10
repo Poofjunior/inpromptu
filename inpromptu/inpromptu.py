@@ -106,9 +106,9 @@ class Inpromptu:
         Enables tab-completion while preserving full prompt prefix."""
         # Override the prompt if a custom prompt is requested.
         if prompt:
-            self.prompt = prompt
+            self.prompt = prompt + " "
         else:
-            self.prompt = self.__class__.prompt
+            self.prompt = self.__class__.prompt + " "
         return input(self.prompt)
 
 
@@ -157,10 +157,13 @@ class Inpromptu:
             except IndexError:
                 return None
 
-
         # Complete the fn params.
         self.func_name = cmd_with_args[0]
+        # Check to make sure func name was fully typed.
+        if self.func_name not in self.omm.callables:
+            return None
         param_signature = cmd_with_args[1:]
+        # This will KeyError if we typed something wrong.
         self.func_params = self.omm.cli_method_definitions[self.func_name]['param_order']
         if self.func_params[0] in ['self', 'cls']:
             self.func_params = self.func_params[1:]
@@ -213,6 +216,7 @@ class Inpromptu:
         try:
             return func_param_completions[state]
         except IndexError:
+            # IndexError means state has incremented too far, and we're done.
             return None
 
 

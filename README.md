@@ -1,20 +1,23 @@
-## Inpromptu
+# Inpromptu
 A library for inferring interactive prompts from object instances.
 
 
-### What Inpromptu Is
+## What Inpromptu Is
 Inpromptu is a near-direct replacement for Python's built-in [cmd.py](https://docs.python.org/3/library/cmd.html) utility.
-Rather than rewrite an additional interface class with special `do_` methods, Inpromptu infers the prompt from the class directly.
-Inpromptu will take an object instances callables and expose them in a read-evaluate-print-loop that supports tab-completion.
+Rather than rewrite an extra class with special `do_` methods, Inpromptu infers a prompt from the class directly.
+Inpromptu takes an object instance's callables and exposes them in a read-evaluate-print-loop that supports tab-completion.
 
-Born from a need to quickly interact with real-world devices and a frustration from the manual overhead of cmd.py, Inpromptu automatically generates an interactive prompt session by taking advantage of Python's type hinting and introspection capabilities. Features include
+Born from a need to quickly interact with real-world devices and a frustration from the manual overhead of cmd.py, Inpromptu automatically generates an interactive prompt session by taking advantage of Python's type hinting and introspection capabilities.
+Features include
 
 * seamless automatic tab completion using a method's function signature
-* automatic help generation using a method's docstring
-* interactive methods that can prompt the user for more input anywhere in the method
+* TODO: automatic help generation using a method's docstring
+* TODO: interactive methods that can prompt the user for more input anywhere in the method
   * customizeable tab-completion that can be reconfigured anywhere in the method
 
-### What Inpromptu Isn't
+Inpromptu also provides a [prompt_toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/)-compatible completer so you can build more complicated prompts while getting all of inpromptu's introspection elements for free.
+
+## What Inpromptu Isn't
 Inpromptu creates an interactive prompt. Inpromptu is not:
 * a command line interface generator. See [argparse](https://docs.python.org/3/library/argparse.html), [python-fire](https://github.com/google/python-fire), or [click](https://click.palletsprojects.com/en/7.x/) for that.
 * a api-replacement for cmd.py. There are some differences. Have a go at the examples.
@@ -46,7 +49,7 @@ class TestDrive:
 
     honk(self):
         """beep the horn."""
-        pass
+        print("Beep!")
 
     speed(self):
         """return the vehicle speed."""
@@ -57,7 +60,8 @@ Create a promt with Inpromptu.
 ```python
 from inpromptu import Inpromptu
 
-my_prompt = Inpromtu(TestDrive)
+my_test_drive = TestDrive()
+my_prompt = Inpromtu(my_test_drive)
 my_prompt.cmdloop()
 ```
 
@@ -79,7 +83,6 @@ Great! Now let's demo argument completion.
 
 First, add a function with [type-hinted annotations](https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html#functions) for all input arguments (except self or cls).
 ```python
-@cli_method
 add_fuel(self, gallons: float = 0, top_off: bool = False):
     """Add fuel in gallons.""
     pass
@@ -116,6 +119,8 @@ OR
 In other words, arguments can be filled out by name or by position or by a combination of position first, then by name--just like how *args and **kwds behave on normal python functions.
 
 Last demo. Tab completion can be inferred automatically by the function signature. But what if you need to change it mid-function to suggest user input? No prob. Just add it to the completions list
+
+**TODO: validate that this works in new version.**
 
 ```python
 add_specs_from_user(self):
