@@ -159,10 +159,9 @@ class Inpromptu:
 
         # Complete the fn params.
         self.func_name = cmd_with_args[0]
-        # Check to make sure func name was fully typed.
-        if self.func_name not in self.omm.callables:
+        # Check to make sure func name has parameters and was typed correctly.
+        if self.func_name not in self.omm.cli_method_definitions:
             return None
-        param_signature = cmd_with_args[1:]
         self.func_params = self.omm.cli_method_definitions[self.func_name]['param_order']
         if self.func_params[0] in ['self', 'cls']:
             self.func_params = self.func_params[1:]
@@ -171,6 +170,7 @@ class Inpromptu:
         # Abort upon first keyword.
         first_kwarg_found = False
         first_kwarg_index = 0
+        param_signature = cmd_with_args[1:] # everything typed after the fn name.
         for entry_index, text_block in enumerate(param_signature):
             kwarg = None
             # Check if text entry is a fully-entered kwarg.
@@ -311,7 +311,8 @@ class Inpromptu:
                 # Invoke the fn.
                 return_val = None
                 try:
-                    pprint.pprint(kwargs)
+                    # Maybe keep the pprinting with a verbose option?
+                    #pprint.pprint(kwargs)
                     return_val = self.omm.cli_methods[fn_name](**kwargs)
                 except Exception as e:
                     print(f"{fn_name} raised an excecption while being executed.")

@@ -49,8 +49,8 @@ class PromptToolkitCompleter(Completer):
         # Complete method parameters (i.e: args in order then kwargs by name)
         else:
             self.func_name = cmd_with_args[0]
-            # Check to make sure func name was fully typed.
-            if self.func_name not in self.omm.callables:
+            # Check to make sure func name has parameters and was typed correctly.
+            if self.func_name not in self.omm.cli_method_definitions:
                 return None
             param_signature = cmd_with_args[1:]
             self.func_params = self.omm.cli_method_definitions[self.func_name]['param_order']
