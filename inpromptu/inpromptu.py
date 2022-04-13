@@ -134,7 +134,7 @@ class Inpromptu:
 
         Note: this fn gets called by readline really weirdly.
         This fn gets called repeatedly with increasing values of state until
-        the fn returns None (or throws an exception).
+        the fn returns the available completions (list) or None.
         """
         # Warning: exceptions raised in this fn are not catchable.
 
@@ -163,7 +163,6 @@ class Inpromptu:
         if self.func_name not in self.omm.callables:
             return None
         param_signature = cmd_with_args[1:]
-        # This will KeyError if we typed something wrong.
         self.func_params = self.omm.cli_method_definitions[self.func_name]['param_order']
         if self.func_params[0] in ['self', 'cls']:
             self.func_params = self.func_params[1:]
@@ -291,7 +290,7 @@ class Inpromptu:
                                  "specified before any keyword arguments.")
                         arg_name = param_order[arg_index]
                         val_str = arg_block
-                    val = self.omm.cli_method_definitions[fn_name]['parameters'][arg_name]['type'](val_str)
+                    val = self._fn_value_from_string(fn_name, arg_name, val_str)
                     kwargs[arg_name] = val
 
                 # Populate missing params with their defaults.
@@ -312,6 +311,7 @@ class Inpromptu:
                 # Invoke the fn.
                 return_val = None
                 try:
+                    pprint.pprint(kwargs)
                     return_val = self.omm.cli_methods[fn_name](**kwargs)
                 except Exception as e:
                     print(f"{fn_name} raised an excecption while being executed.")
@@ -330,3 +330,18 @@ class Inpromptu:
             if not loop:
                 return
 
+
+    def _fn_value_from_string(self, fn_name, arg_name, val_str):
+        """Converts the fn parameter input from string to a value appropriate with the signature."""
+
+        # Handle yucky edge case where "False" gets cast to True
+        param_type = self.omm.cli_method_definitions[fn_name]['parameters'][arg_name]['type']
+        # for bools, we'll accept True or False only.
+        if param_type == bool:
+            if val_str not in ["True", "False"]:
+                raise UserInputError("Error: valid options for bool type are either True or False.")
+            elif val_str == 'False':
+                return False
+
+        # Remaining cases behave predictably.
+        return param_type(val_str)

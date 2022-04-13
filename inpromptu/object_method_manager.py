@@ -75,8 +75,12 @@ class ObjectMethodManager:
         # different signature, so we hold onto all properties so that we can
         # invoke fgets separately.
         self.cli_methods, self.property_getters = self._get_cli_methods(method_ignore_list)
+        # Insert a help method that prints the docstring into the callables.
+        self.cli_methods['help'] = self.help
         self.callables = set({**self.cli_methods, **self.property_getters}.keys())
         self.cli_method_definitions = self._get_cli_method_definitions()
+
+
         import pprint
         pprint.pprint(self.cli_methods)
         pprint.pprint(self.cli_method_definitions)
@@ -172,3 +176,29 @@ class ObjectMethodManager:
 
         return definitions
 
+
+    def help(self, func_name: str = None):
+        """Print a cli method's docstring."""
+
+        if func_name is None:
+            print(self.help.__doc__)
+            return
+
+        try:
+            # Special case for @property, since it is tied to multiple methods.
+            if func_name in self.property_getters:
+                print("Without parameters:")
+                print("  ", self.property_getters[func_name].__doc__)
+                try:
+                    print("With parameters:")
+                    print("  ", self.cli_method_definitions[func_name]["doc"])
+                except KeyError:
+                    print()
+            # Normal Case:
+            elif func_name in self.cli_methods:
+                print(self.cli_method_definitions[func_name]["doc"])
+            # Misspelling case, or callable does not exist.
+            else:
+                raise KeyError
+        except KeyError:
+            print(f"Error: {func_name} is not a callable method.")
