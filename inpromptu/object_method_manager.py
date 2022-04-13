@@ -81,9 +81,9 @@ class ObjectMethodManager:
         self.cli_method_definitions = self._get_cli_method_definitions()
 
 
-        import pprint
-        pprint.pprint(self.cli_methods)
-        pprint.pprint(self.cli_method_definitions)
+        #import pprint
+        #pprint.pprint(self.cli_methods)
+        #pprint.pprint(self.cli_method_definitions)
 
 
     def _get_cli_methods(self, method_ignore_list = []):

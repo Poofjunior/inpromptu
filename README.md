@@ -11,7 +11,7 @@ Born from a need to quickly interact with real-world devices and a frustration f
 Features include
 
 * seamless automatic tab completion using a method's function signature
-* TODO: automatic help generation using a method's docstring
+* automatic help generation using a method's docstring
 * TODO: interactive methods that can prompt the user for more input anywhere in the method
   * customizeable tab-completion that can be reconfigured anywhere in the method
 
