@@ -22,8 +22,8 @@ def test_basic_callable_capture(monkeypatch, capsys):
     my_class_a = TestClass()
     my_prompt = Inpromptu(my_class_a)
 
-    # Ensure that we retrieved all the class' methods.
-    assert my_prompt.omm.callables == {'my_method', 'my_other_method'}, \
+    # Ensure that we retrieved all the class' methods. Note: 'help' is builtin.
+    assert my_prompt.omm.callables == {'my_method', 'my_other_method', 'help'}, \
         "Error: ObjectMethodManager did not retrieve the correct methods of "\
         f"{my_class_a.__class__.__name__}"
 
@@ -70,8 +70,8 @@ def test_ignore_non_callable_data_members(monkeypatch, capsys):
     my_class_a = TestClassWithMember()
     my_prompt = Inpromptu(my_class_a)
 
-    # Ensure that we retrieved all the class' methods.
-    correct_callables = {'my_method', 'my_other_method'}
+    # Ensure that we retrieved all the class' methods. Note: 'help' is builtin.
+    correct_callables = {'my_method', 'my_other_method', 'help'}
     assert my_prompt.omm.callables == correct_callables, \
         "Error: ObjectMethodManager did not ignore " \
         f"{my_class_a.__class__.__name__}'s non-callable objects."
@@ -100,8 +100,8 @@ def test_keep_callable_data_members(monkeypatch, capsys):
     my_class_a = TestClassWithCallableMember()
     my_prompt = Inpromptu(my_class_a)
 
-    # Ensure that we retrieved all the class' methods.
-    correct_callables = {'my_method', 'my_other_method', 'my_callable'}
+    # Ensure that we retrieved all the class' methods. Note: 'help' is builtin.
+    correct_callables = {'my_method', 'my_other_method', 'my_callable', 'help'}
     assert my_prompt.omm.callables == correct_callables, \
         "Error: ObjectMethodManager did not include " \
         f"{my_class_a.__class__.__name__}'s callable objects."

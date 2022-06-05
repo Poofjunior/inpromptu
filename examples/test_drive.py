@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from inpromptu import Inpromptu
+from typing import List
 
 
 class TestDrive:
@@ -10,6 +11,7 @@ class TestDrive:
         self.vehicle_speed = 0
         self.gallons = 0
         self.num_doors = 0
+        self.passengers = []
 
     @property
     def speed(self):
@@ -24,6 +26,10 @@ class TestDrive:
     def add_fuel(self, gallons: float = 0, top_off: bool = False):
         """add some fuel."""
         self.gallons += gallons
+
+    #def add_passengers(self, passenger_list: List[str]):
+    #    self.pasengers = passenger_list
+
 
     def add_specs_from_user_input(self):
         """Add specs from the user."""

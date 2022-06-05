@@ -335,8 +335,8 @@ class Inpromptu:
     def _fn_value_from_string(self, fn_name, arg_name, val_str):
         """Converts the fn parameter input from string to a value appropriate with the signature."""
 
-        # Handle yucky edge case where "False" gets cast to True
         param_type = self.omm.cli_method_definitions[fn_name]['parameters'][arg_name]['type']
+        # Handle yucky edge case where "False" gets cast to True
         # for bools, we'll accept True or False only.
         if param_type == bool:
             if val_str not in ["True", "False"]:

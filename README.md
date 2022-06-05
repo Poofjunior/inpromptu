@@ -144,6 +144,12 @@ Inpromptu can be used as a minimalistic UI on its own.
 
 Core elements of Inpromptu can also be hooked directly into [Python Prompt Toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/) to provide the same kind of object-based completions with richer prompt features.
 
+### What's not implemented?
+* The [@overload](https://docs.python.org/3/library/typing.html#typing.overload) operator.
+* input arguments that can be various types.
+* functions wrapped in decorators: like `@cache`, `@cached_property` from functools
+  * these may work. Double check.
+
 ## About the Author
 Inpromptu was written by someone who used cmd.py one-too-many times. There had to be a better solution.
 And Inpromptu is one of many.
