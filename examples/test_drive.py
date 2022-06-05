@@ -27,8 +27,11 @@ class TestDrive:
         """add some fuel."""
         self.gallons += gallons
 
-    #def add_passengers(self, passenger_list: List[str]):
-    #    self.pasengers = passenger_list
+    # In the cmdloop user input, list cannot include spaces betweeen items!
+    def add_passengers(self, passenger_list: list, buckle_them: bool = True):
+        self.passengers = passenger_list
+        for passenger in self.passengers:
+            print(f"adding: {passenger}")
 
 
     def add_specs_from_user_input(self):

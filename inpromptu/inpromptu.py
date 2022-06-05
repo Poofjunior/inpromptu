@@ -5,6 +5,7 @@ import pprint
 import os
 from math import floor
 import traceback
+from ast import literal_eval
 
 from .object_method_manager import ObjectMethodManager
 from .errors import UserInputError
@@ -345,4 +346,4 @@ class Inpromptu:
                 return False
 
         # Remaining cases behave predictably.
-        return param_type(val_str)
+        return param_type(literal_eval(val_str))

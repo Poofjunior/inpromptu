@@ -165,7 +165,6 @@ class ObjectMethodManager:
                 elif parameter_name == 'cls':
                     parameter["default"] = self.class_instance.__class__
 
-                print(f"parameter type is: {parameter_type}")
                 # Check for Enum types.
                 if parameter_type is not None and issubclass(parameter_type, Enum):
                     parameter["type"] = "Enum"
