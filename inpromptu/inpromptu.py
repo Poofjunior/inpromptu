@@ -89,14 +89,14 @@ class Inpromptu:
             print_columnized_list(matches)
         # Render Function Args:
         else:
-            param_order = [f"{x}=" for x in self.omm.cli_method_definitions[self.func_name]['param_order']]
+            param_order = [f"{x}=" for x in self.omm.method_defs[self.func_name]['param_order']]
             # matches arrive alphebatized. Specify order according to original.
             matches = sorted(matches, key=lambda x: param_order.index(x))
             # Render argument matches with type.
             # Track argument index such that we only display valid options.
             for arg_completion in matches:
                 arg = arg_completion.split("=")[0]
-                arg_type = self.omm.cli_method_definitions[self.func_name]['parameters'][arg]['type']
+                arg_type = self.omm.method_defs[self.func_name]['parameters'][arg]['type']
                 print(f"{arg}=<{arg_type.__name__}>", end=" ")
         print()
         print(self.prompt, readline.get_line_buffer(), sep='', end='', flush=True)
@@ -161,9 +161,9 @@ class Inpromptu:
         # Complete the fn params.
         self.func_name = cmd_with_args[0]
         # Check to make sure func name has parameters and was typed correctly.
-        if self.func_name not in self.omm.cli_method_definitions:
+        if self.func_name not in self.omm.method_defs:
             return None
-        self.func_params = self.omm.cli_method_definitions[self.func_name]['param_order']
+        self.func_params = self.omm.method_defs[self.func_name]['param_order']
         if self.func_params[0] in ['self', 'cls']:
             self.func_params = self.func_params[1:]
 
@@ -266,10 +266,10 @@ class Inpromptu:
                     else:
                         continue
 
-                param_count = len(self.omm.cli_method_definitions[fn_name]['param_order'])
-                param_order = self.omm.cli_method_definitions[fn_name]['param_order']
+                param_count = len(self.omm.method_defs[fn_name]['param_order'])
+                param_order = self.omm.method_defs[fn_name]['param_order']
                 # Remove self or cls from param count and arg list.
-                if self.omm.cli_method_definitions[fn_name]['param_order'][0] in ['self', 'cls']:
+                if self.omm.method_defs[fn_name]['param_order'][0] in ['self', 'cls']:
                     param_count -= 1
                     param_order = param_order[1:]
                 # Ensure required arg count is met.
@@ -296,7 +296,7 @@ class Inpromptu:
 
                 # Populate missing params with their defaults.
                 # Raise error if are required param is missing.
-                kwarg_settings = self.omm.cli_method_definitions[fn_name]['parameters']
+                kwarg_settings = self.omm.method_defs[fn_name]['parameters']
                 missing_kwargs = []
                 for key, val in kwarg_settings.items():
                     if key not in kwargs:
@@ -314,7 +314,7 @@ class Inpromptu:
                 try:
                     # Maybe keep the pprinting with a verbose option?
                     #pprint.pprint(kwargs)
-                    return_val = self.omm.cli_methods[fn_name](**kwargs)
+                    return_val = self.omm.methods[fn_name](**kwargs)
                 except Exception as e:
                     print(f"{fn_name} raised an excecption while being executed.")
                     print(e)
@@ -336,7 +336,7 @@ class Inpromptu:
     def _fn_value_from_string(self, fn_name, arg_name, val_str):
         """Converts the fn parameter input from string to a value appropriate with the signature."""
 
-        param_type = self.omm.cli_method_definitions[fn_name]['parameters'][arg_name]['type']
+        param_type = self.omm.method_defs[fn_name]['parameters'][arg_name]['type']
         # Handle yucky edge case where "False" gets cast to True
         # for bools, we'll accept True or False only.
         if param_type == bool:

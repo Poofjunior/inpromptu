@@ -146,6 +146,7 @@ Core elements of Inpromptu can also be hooked directly into [Python Prompt Toolk
 
 ### What's not implemented?
 * The [@overload](https://docs.python.org/3/library/typing.html#typing.overload) operator.
+* functions that use `*args` and `**kwargs` as input
 * input arguments that can be various types.
 * functions wrapped in decorators: like `@cache`, `@cached_property` from functools
   * these may work. Double check.

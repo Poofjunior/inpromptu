@@ -74,26 +74,26 @@ class ObjectMethodManager:
         # From the user perspective, fget and fset have the same name, but
         # different signature, so we hold onto all properties so that we can
         # invoke fgets separately.
-        self.cli_methods, self.property_getters = self._get_cli_methods(method_ignore_list)
+        self.methods, self.property_getters = self._get_methods(method_ignore_list)
         # Insert a help method that prints the docstring into the callables.
-        self.cli_methods['help'] = self.help
-        self.callables = set({**self.cli_methods, **self.property_getters}.keys())
-        self.cli_method_definitions = self._get_cli_method_definitions()
+        self.methods['help'] = self.help
+        self.callables = set({**self.methods, **self.property_getters}.keys())
+        self.method_defs = self._get_method_defs()
 
 
         #import pprint
         #print("cli methods")
-        #pprint.pprint(self.cli_methods)
+        #pprint.pprint(self.methods)
         #print("cli method definitions")
-        #pprint.pprint(self.cli_method_definitions)
+        #pprint.pprint(self.method_defs)
         #print("callables")
         #pprint.pprint(self.callables)
 
 
-    def _get_cli_methods(self, method_ignore_list = []):
+    def _get_methods(self, method_ignore_list = []):
         """Collect all methods but avoid the ones in the method_ignore_list."""
 
-        cli_methods = {}
+        methods = {}
         property_getters = {}
 
 
@@ -104,7 +104,7 @@ class ObjectMethodManager:
             # Special case properties, which may be tied to 2 relevant methods.
             if isinstance(value, property):
                 if value.fset is not None:
-                    cli_methods[name] = value.fset
+                    methods[name] = value.fset
                 if value.fget is not None:
                     # Store the getter elsewhere to prevent name clash
                     property_getters[name] = value.fget
@@ -117,12 +117,12 @@ class ObjectMethodManager:
                  not callable(value):
                 continue
             else:
-                cli_methods[name] = value
+                methods[name] = value
 
-        return cli_methods, property_getters
+        return methods, property_getters
 
 
-    def _get_cli_method_definitions(self):
+    def _get_method_defs(self):
         """Build method definitions.
 
         Returns:
@@ -130,7 +130,7 @@ class ObjectMethodManager:
         """
         definitions = {}
 
-        for method_name, method in self.cli_methods.items():
+        for method_name, method in self.methods.items():
             parameters = {}
             param_order = []
             sig = signature(method)
@@ -195,12 +195,12 @@ class ObjectMethodManager:
                 print("  ", self.property_getters[func_name].__doc__)
                 try:
                     print("With parameters:")
-                    print("  ", self.cli_method_definitions[func_name]["doc"])
+                    print("  ", self.method_defs[func_name]["doc"])
                 except KeyError:
                     print()
             # Normal Case:
-            elif func_name in self.cli_methods:
-                print(self.cli_method_definitions[func_name]["doc"])
+            elif func_name in self.methods:
+                print(self.method_defs[func_name]["doc"])
             # Misspelling case, or callable does not exist.
             else:
                 raise KeyError
