@@ -142,6 +142,7 @@ python3 -m examples.test_drive
 You could! Inpromptu is intented to be a bit more minimalistic and user-friendly.
 Inpromptu can be used as a minimalistic UI on its own.
 
+### Is there any way I can tease out the core elements to build my own interface?
 Core elements of Inpromptu can also be hooked directly into [Python Prompt Toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/) to provide the same kind of object-based completions with richer prompt features.
 
 ### What's not implemented?
