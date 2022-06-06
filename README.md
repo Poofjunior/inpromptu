@@ -56,12 +56,12 @@ class TestDrive:
         return self.vehicle_speed
 ```
 
-Create a promt with Inpromptu.
+Create a prompt with Inpromptu.
 ```python
 from inpromptu import Inpromptu
 
 my_test_drive = TestDrive()
-my_prompt = Inpromtu(my_test_drive)
+my_prompt = Inpromptu(my_test_drive)
 my_prompt.cmdloop()
 ```
 
@@ -95,7 +95,7 @@ Start typing at the prompt
 ```
 >>> add_f
 ```
-Press tab to complete any `@cli_method` decorated function.
+Press tab to complete any function.
 ```
 >>> add_fuel
 ```
