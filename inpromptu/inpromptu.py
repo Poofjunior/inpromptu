@@ -34,9 +34,54 @@ def print_columnized_list(my_list):
     except StopIteration:
         pass # Done printing.
 
+# helper function for splitting user input containing nested {}, [], (), '', "".
+def container_split(s):
+    """split that splits on spaces while handling nested "", '', {}, []."""
+    container_queue = []
+    text_queue = []
+    split_indices = []
+    text_delim = {'"', "'"}
+    container_start = { '{', '(', '[' }
+    container_end = { '}', ')', ']' }
+    container_end_to_start = { '}':'{', ')':'(', ']':'[' }
+
+    for i, c in enumerate(s):
+        if c in text_delim:
+            if len(text_queue) == 0: # start of string.
+                #print(f"{c} -> start of string") # start of string
+                text_queue.append(c)
+                continue
+            elif len(text_queue) > 0 and c == text_queue[-1]:  # end of string.
+                #print(f"{c} -> end of string") # end of string
+                text_queue.pop(-1)
+                continue
+        elif c in container_start:
+            #if len(container_queue) == 0: # start of outermost container.
+            #    print(f"{c} -> start of outermost container")
+            container_queue.append(c)
+            continue
+        elif c in container_end:
+            if len(container_queue) > 0:
+                if container_end_to_start[c] == container_queue[-1]:
+                    container_queue.pop(-1)
+                    if len(container_queue) == 0:
+                        #print(f"{c} -> end of outermost container")
+                        chunk_start = i+1
+                        continue
+        if c == " " and \
+           (len(text_queue) == 0) and (len(container_queue) == 0):
+            #print(f"{c} -> split here.")
+            split_indices.append(i)
+            continue
+        #print(c)
+    #print(split_indices)
+    split_indices = [0] + split_indices + [len(s)]
+    return [s[x:y].lstrip() for x,y in zip(split_indices, split_indices[1:]) \
+            if len(s[x:y].lstrip()) > 0]
+
 
 class Inpromptu:
-    """Inspects an object recursively and enables the invoking of any attribute's methods."""
+    """Inspects an object and enables the invoking of any attribute's methods."""
 
     prompt = '>>>'
     complete_key = 'tab'
@@ -71,7 +116,7 @@ class Inpromptu:
         # This issue is connected to the readline implementation.
 
         line = readline.get_line_buffer() # entire line of entered text so far.
-        cmd_with_args = line.split()
+        cmd_with_args = container_split(line)
         print()
         # Render explicitly specified completions in the original order:
         if self.completions:
@@ -141,7 +186,7 @@ class Inpromptu:
 
         text = text.lstrip() # what we are matching against
         line = readline.get_line_buffer() # The whole line.
-        cmd_with_args = line.split()
+        cmd_with_args = container_split(line)
 
 
         # Take custom overrides if any are defined.
@@ -234,7 +279,7 @@ class Inpromptu:
                 if line.lstrip() == "":
                     continue
                 ## Extract fn and args.
-                fn_name, *arg_blocks = line.split()
+                fn_name, *arg_blocks = container_split(line)
                 kwargs = {}
 
                 no_more_args = False # indicates end of positional args in fn signature
