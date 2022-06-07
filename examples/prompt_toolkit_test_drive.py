@@ -19,7 +19,7 @@ if __name__ == "__main__":
     session = PromptSession('>>>', completer=ptk_completer)
     while True:
         try:
-            text = session.prompt('>>>', complete_style=CompleteStyle.READLINE_LIKE)
+            text = session.prompt('>>> ', complete_style=CompleteStyle.READLINE_LIKE)
         except KeyboardInterrupt:
             print("Press CTRL-D to exit.")
         except EOFError:

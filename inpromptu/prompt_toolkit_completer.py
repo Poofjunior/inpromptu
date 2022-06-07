@@ -4,6 +4,8 @@ from prompt_toolkit.completion import Completer, Completion
 from .object_method_manager import ObjectMethodManager
 from .errors import UserInputError
 
+from .inpromptu import container_split
+
 
 class PromptToolkitCompleter(Completer):
 
@@ -36,24 +38,25 @@ class PromptToolkitCompleter(Completer):
         """
         # TODO: maybe it's worth just writing a REGEX for this?
 
-        word = document.get_word_before_cursor()
+        #word = document.get_word_before_cursor()
+        text = document.text
+        word = container_split(text)[0][-1] if (len(text) and text[-1] != " ") else ""
         # Check word against valid completions.
         line = document.lines[0]
-        cmd_with_args = line.split()
+        cmd_with_args, last_word_finished = container_split(line)
         completions = []
 
-        # Complete method or @property names.
+        # Complete the fn name.
         if len(cmd_with_args) == 0 or \
-            (len(cmd_with_args) == 1 and line[-1] !=self.__class__.DELIM):
-            completions = self.omm.callables
-        # Complete method parameters (i.e: args in order then kwargs by name)
+            (len(cmd_with_args) == 1 and line[-1] != self.__class__.DELIM):
+                completions = [c for c in self.omm.callables if c.startswith(word)]
+        # Complete the fn params (i.e: args in order then kwargs by name)
         else:
             self.func_name = cmd_with_args[0]
             # Check to make sure func name has parameters and was typed correctly.
-            if self.func_name not in self.omm.cli_method_definitions:
+            if self.func_name not in self.omm.method_defs:
                 return None
-            param_signature = cmd_with_args[1:]
-            self.func_params = self.omm.cli_method_definitions[self.func_name]['param_order']
+            self.func_params = self.omm.method_defs[self.func_name]['param_order']
             if self.func_params[0] in ['self', 'cls']:
                 self.func_params = self.func_params[1:]
 
@@ -61,6 +64,7 @@ class PromptToolkitCompleter(Completer):
             # Abort upon finding first keyword argument.
             first_kwarg_found = False
             first_kwarg_index = 0
+            param_signature = cmd_with_args[1:]
             for entry_index, param_entry in enumerate(param_signature):
                 kwarg = None
                 # Check if text entry is a fully-entered kwarg.
@@ -89,8 +93,12 @@ class PromptToolkitCompleter(Completer):
             # Now generate completion list for params not yet entered.
             for param_order_index, param_name in enumerate(self.func_params):
                 completion = f"{param_name}="
+                if not last_word_finished:
+                    return
                 # No space case: arg is fully typed but missing a space.
-                if line[-1] != self.__class__.DELIM and param_signature[-1].startswith(completion):
+                if line[-1] != self.__class__.DELIM and \
+                    param_signature[-1].startswith(completion) and \
+                    last_word_finished:
                     return
                 # Filter out already-populated argument options by name and position.
                 skip = False
@@ -104,10 +112,9 @@ class PromptToolkitCompleter(Completer):
 
         # Finally, yield any completions.
         for completion in completions:
-            if completion.startswith(word):
-                yield Completion(completion,
-                                 start_position=-len(word),
-                                 display=completion,
-                                 display_meta=None,
-                                 style="bg:ansiblack fg:ansiyellow")
+            yield Completion(completion,
+                             start_position=-len(word),
+                             display=completion,
+                             display_meta=None,
+                             style="bg:ansiblack fg:ansiyellow")
 

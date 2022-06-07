@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Class for ."""
+"""Class for inferring an introspective prompt."""
 import readline
 import pprint
 import os
@@ -36,7 +36,11 @@ def print_columnized_list(my_list):
 
 # helper function for splitting user input containing nested {}, [], (), '', "".
 def container_split(s):
-    """split that splits on spaces while handling nested "", '', {}, []."""
+    """split that splits on spaces while handling nested "", '', {}, [].
+
+    returns a tuple (list, bool) of the split items and a bool indicating
+            whether the final word was fully entered.
+    """
     container_queue = []
     text_queue = []
     split_indices = []
@@ -77,7 +81,8 @@ def container_split(s):
     #print(split_indices)
     split_indices = [0] + split_indices + [len(s)]
     return [s[x:y].lstrip() for x,y in zip(split_indices, split_indices[1:]) \
-            if len(s[x:y].lstrip()) > 0]
+            if len(s[x:y].lstrip()) > 0] , \
+            len(container_queue) == 0 and len(text_queue) == 0
 
 
 class Inpromptu:
@@ -116,7 +121,7 @@ class Inpromptu:
         # This issue is connected to the readline implementation.
 
         line = readline.get_line_buffer() # entire line of entered text so far.
-        cmd_with_args = container_split(line)
+        cmd_with_args, _ = container_split(line)
         print()
         # Render explicitly specified completions in the original order:
         if self.completions:
@@ -164,6 +169,8 @@ class Inpromptu:
         As called by readline, exceptions called in complete will not be caught
         in the main thread.
         """
+        # Exceptions raised in this fn are not catchable so we must print them
+        # manually.
         try:
             return self._complete(text, state, *args, **kwargs)
         except Exception as e:
@@ -182,12 +189,12 @@ class Inpromptu:
         This fn gets called repeatedly with increasing values of state until
         the fn returns the available completions (list) or None.
         """
-        # Warning: exceptions raised in this fn are not catchable.
 
-        text = text.lstrip() # what we are matching against
+        # readline delim must be set to ' ' such that {, [, (, etc aren't
+        # skipped. "container_split" will handle when to match the text we get.
+        text = text.lstrip() # what we are matching against.
         line = readline.get_line_buffer() # The whole line.
-        cmd_with_args = container_split(line)
-
+        cmd_with_args, last_param_finished = container_split(line)
 
         # Take custom overrides if any are defined.
         if self.completions:
@@ -245,6 +252,8 @@ class Inpromptu:
         func_param_completions = []
         for param_order_index, param_name in enumerate(self.func_params):
             completion = f"{param_name}="
+            if not last_param_finished:
+                return None
             # No space case: arg is fully typed but missing a space
             if line[-1] is not self.__class__.DELIM and param_signature[-1].startswith(completion):
                 return None
@@ -271,6 +280,9 @@ class Inpromptu:
         """
 
         readline.set_completer(self.complete)
+        # Only split text to match on spaces. Default includes '{', '[', etc
+        # which will be skipped by the results of text.
+        readline.set_completer_delims(" ") # only split text on spaces.
         readline.set_completion_display_matches_hook(self._match_display_hook)
         readline.parse_and_bind(f"{self.__class__.complete_key}: complete")
         while True:
@@ -279,7 +291,7 @@ class Inpromptu:
                 if line.lstrip() == "":
                     continue
                 ## Extract fn and args.
-                fn_name, *arg_blocks = container_split(line)
+                fn_name, *arg_blocks = container_split(line)[0]
                 kwargs = {}
 
                 no_more_args = False # indicates end of positional args in fn signature
