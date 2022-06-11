@@ -4,7 +4,7 @@ A library for inferring interactive prompts from object instances.
 
 ## What Inpromptu Is
 Inpromptu is a near-direct replacement for Python's built-in [cmd.py](https://docs.python.org/3/library/cmd.html) utility.
-Rather than rewrite an extra class with special `do_` methods, Inpromptu infers a prompt from the class directly.
+Rather than rewrite an extra class with special `do_` methods, Inpromptu will infer a prompt from the class directly.
 Inpromptu takes an object instance's callables and exposes them in a read-evaluate-print-loop that supports tab-completion.
 
 Born from a need to quickly interact with real-world devices and a frustration from the manual overhead of cmd.py, Inpromptu automatically generates an interactive prompt session by taking advantage of Python's type hinting and introspection capabilities.
@@ -12,8 +12,6 @@ Features include
 
 * seamless automatic tab completion using a method's function signature
 * automatic help generation using a method's docstring
-* TODO: interactive methods that can prompt the user for more input anywhere in the method
-  * customizeable tab-completion that can be reconfigured anywhere in the method
 
 Inpromptu also provides a [prompt_toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/)-compatible completer so you can build more complicated prompts while getting all of inpromptu's introspection elements for free.
 
@@ -117,19 +115,6 @@ OR
 >>> add_fuel 10 top_off=False
 ```
 In other words, arguments can be filled out by name or by position or by a combination of position first, then by name--just like how *args and **kwds behave on normal python functions.
-
-Last demo. Tab completion can be inferred automatically by the function signature. But what if you need to change it mid-function to suggest user input? No prob. Just add it to the completions list
-
-**TODO: validate that this works in new version.**
-
-```python
-add_specs_from_user(self):
-    """Add specs from user."""
-    self.completions = ["2", "4", "6"]
-    self.door_count = self.input("How many doors does this vehicle have?")
-```
-"Tabbing" for completions will render this list which is cleared when the function finishes executing.
-
 
 So what are you waiting for? Why not take it for a test drive? From the top directory, run:
 
