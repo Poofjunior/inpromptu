@@ -10,25 +10,27 @@ from prompt_toolkit import prompt, PromptSession
 from prompt_toolkit.shortcuts import CompleteStyle
 from prompt_toolkit.completion import Completer, Completion
 
-# TODO: rename inpromptu inpromptu_base
-from .inpromptu import container_split
+from .inpromptu_base import InpromptuBase
+from .inpromptu_base import container_split
 from .object_method_manager import ObjectMethodManager
 from .errors import UserInputError
 
 
 
-class Inpromptu:
+class Inpromptu(InpromptuBase):
     """Inspects an object and enables the invoking of any attribute's methods."""
-
-    prompt = '>>> '
-    complete_key = 'tab'
-    DELIM = ' '
 
     def __init__(self, class_instance):
         """Constructor."""
-        self.omm = ObjectMethodManager(class_instance)
-        self.prompt = self.__class__.prompt
+        super().__init__(class_instance)
         self.completions = None # unused for now.
+
+        self.session = PromptSession(self.prompt, completer=self)
+
+
+    def input(self):
+        return self.session.prompt(self.prompt + " ",
+                                   complete_style=CompleteStyle.READLINE_LIKE)
 
 
     def _fn_value_from_string(self, fn_name, arg_name, val_str):
@@ -142,114 +144,3 @@ class Inpromptu:
                              display_meta=None,
                              style="bg:ansiblack fg:ansiyellow")
 
-
-    def cmdloop(self, loop=True):
-        """Repeatedly issue a prompt, accept input, and dispatch to action
-        methods, passing them the line remainder as argument.
-        """
-
-        session = PromptSession(self.prompt, completer=self)
-        while True:
-            try:
-                text = session.prompt(self.prompt,
-                                      complete_style=CompleteStyle.READLINE_LIKE)
-                if text.lstrip() == "":
-                    continue
-                ## Extract fn and args.
-                fn_name, *arg_blocks = container_split(text)[0]
-                kwargs = {}
-
-                no_more_args = False # indicates end of positional args in fn signature
-
-                # Check if fn even exists.
-                if fn_name not in self.omm.callables:
-                    raise UserInputError(f"Error: {fn_name} is not a valid command.")
-
-                # Shortcut for @property getters which have no parameters and
-                # whose function pointers are stored elsewhere to prevent name
-                # name clashing with their setters.
-                if len(arg_blocks) == 0 and fn_name in self.omm.property_getters:
-                    return_val = None
-                    try:
-                        this = self.omm.class_instance
-                        # FIXME: how should we implement this?
-                        #return_val = self.omm.property_getters[fn_name](self)
-                        return_val = self.omm.property_getters[fn_name](this)
-                    except Exception as e:
-                        print(f"{fn_name} raised an excecption while being executed.")
-                        print(e)
-                    # Reset any completions set during this function.
-                    finally:
-                        self.completions = None
-                    if return_val is not None:
-                        pprint.pprint(return_val)
-                    if not loop:
-                        return
-                    else:
-                        continue
-
-                param_count = len(self.omm.method_defs[fn_name]['param_order'])
-                param_order = self.omm.method_defs[fn_name]['param_order']
-                # Remove self or cls from param count and arg list.
-                if self.omm.method_defs[fn_name]['param_order'][0] in ['self', 'cls']:
-                    param_count -= 1
-                    param_order = param_order[1:]
-                # Ensure required arg count is met.
-                if len(arg_blocks) > param_count:
-                    raise UserInputError("Error: too many positional arguments.")
-
-                # Collect args and kwargs, enforcing args before kwargs.
-                for arg_index, arg_block in enumerate(arg_blocks):
-                    # Assume keyword arg is specified by key/value pair split by '='
-                    try:
-                        arg_name, val_str = arg_block.split("=")
-                        no_more_args = True
-                    # Otherwise: positional arg. Enforce parameter order.
-                    except (ValueError, AttributeError):
-                        # Enforce that positional args come before kwargs.
-                        if no_more_args:
-                            raise UserInputError(
-                                "Error: all positional arguments must be "
-                                 "specified before any keyword arguments.")
-                        arg_name = param_order[arg_index]
-                        val_str = arg_block
-                    val = self._fn_value_from_string(fn_name, arg_name, val_str)
-                    kwargs[arg_name] = val
-
-                # Populate missing params with their defaults.
-                # Raise error if are required param is missing.
-                kwarg_settings = self.omm.method_defs[fn_name]['parameters']
-                missing_kwargs = []
-                for key, val in kwarg_settings.items():
-                    if key not in kwargs:
-                        if 'default' in kwarg_settings[key]:
-                            kwargs[key] = kwarg_settings[key]['default']
-                        else:
-                            missing_kwargs.append(key)
-                if missing_kwargs:
-                    raise UserInputError(
-                        f"Error: the following required parameters are "
-                        f"missing: {missing_kwargs}")
-
-                # Invoke the fn.
-                return_val = None
-                try:
-                    # Maybe keep the pprinting with a verbose option?
-                    #pprint.pprint(kwargs)
-                    return_val = self.omm.methods[fn_name](**kwargs)
-                except Exception as e:
-                    print(f"{fn_name} raised an excecption while being executed.")
-                    print(e)
-                # Reset any completions set during this function.
-                finally:
-                    self.completions = None
-                if return_val is not None:
-                    pprint.pprint(return_val)
-            except (EOFError, UserInputError) as e:
-                print(e)
-                line = 'EOF'
-            except KeyboardInterrupt:
-                print()
-                return
-            if not loop:
-                return
