@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Base Class for inferring an introspective prompt."""
 import pprint
-import os
 from abc import ABC, abstractmethod
 from ast import literal_eval
 from .object_method_manager import ObjectMethodManager
@@ -82,7 +81,6 @@ class InpromptuBase(ABC):
         # To be implemented by child classes.
         pass
 
-
     def _fn_value_from_string(self, fn_name, arg_name, val_str):
         """Convert param input from string to value appropriate for the signature."""
         param_type = self.omm.method_defs[fn_name]['parameters'][arg_name]['type']
@@ -96,7 +94,6 @@ class InpromptuBase(ABC):
                 return False
         # Remaining cases behave predictably.
         return param_type(literal_eval(val_str))
-
 
     def cmdloop(self, loop=True):
         """Repeatedly issue a prompt, accept input, and dispatch to action
@@ -124,8 +121,6 @@ class InpromptuBase(ABC):
                     return_val = None
                     try:
                         this = self.omm.class_instance
-                        # FIXME: how should we implement this?
-                        #return_val = self.omm.property_getters[fn_name](self)
                         return_val = self.omm.property_getters[fn_name](this)
                     except Exception as e:
                         print(f"{fn_name} raised an excecption while being executed.")
@@ -186,11 +181,11 @@ class InpromptuBase(ABC):
                 # Invoke the fn.
                 return_val = None
                 try:
-                    # Maybe keep the pprinting with a verbose option?
+                    # Maybe keep pprint with a verbose option?
                     #pprint.pprint(kwargs)
                     return_val = self.omm.methods[fn_name](**kwargs)
                 except Exception as e:
-                    print(f"{fn_name} raised an excecption while being executed.")
+                    print(f"{fn_name} raised an exception while being executed.")
                     print(e)
                 # Reset any completions set during this function.
                 finally:
@@ -206,20 +201,4 @@ class InpromptuBase(ABC):
             if not loop:
                 return
 
-
-    def _fn_value_from_string(self, fn_name, arg_name, val_str):
-        """Convert fn param string input to a signature appropriate value."""
-
-        param_type = self.omm.method_defs[fn_name]['parameters'][arg_name]['type']
-        # Handle yucky edge case where "False" gets cast to True
-        # for bools, we'll accept True or False only.
-        if param_type == bool:
-            if val_str not in ["True", "False"]:
-                raise UserInputError("Error: valid options for bool type are " \
-                                     "either True or False.")
-            elif val_str == 'False':
-                return False
-
-        # Remaining cases behave predictably.
-        return param_type(literal_eval(val_str))
 

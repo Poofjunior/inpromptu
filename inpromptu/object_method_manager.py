@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Class for Inspecting and managing the methods of an object instance."""
 
-from inspect import getmembers, ismethod, signature
+from inspect import signature
 from enum import Enum
 
 # TODO: figure out how to warn against multipledispatch
@@ -61,7 +61,6 @@ class ObjectManager:
 class ObjectMethodManager:
     """Inspects an object and aggregates its callable methods."""
 
-
     def __init__(self, class_instance, *args, method_ignore_list=[], **kwargs):
         """collect functions."""
 
@@ -80,7 +79,6 @@ class ObjectMethodManager:
         self.callables = set({**self.methods, **self.property_getters}.keys())
         self.method_defs = self._get_method_defs()
 
-
         #import pprint
         #print("cli methods")
         #pprint.pprint(self.methods)
@@ -89,13 +87,11 @@ class ObjectMethodManager:
         #print("callables")
         #pprint.pprint(self.callables)
 
-
     def _get_methods(self, method_ignore_list = []):
         """Collect all methods but avoid the ones in the method_ignore_list."""
 
         methods = {}
         property_getters = {}
-
 
         for name in dir(self.class_instance):
             #print(name)
@@ -120,7 +116,6 @@ class ObjectMethodManager:
                 methods[name] = value
 
         return methods, property_getters
-
 
     def _get_method_defs(self):
         """Build method definitions.
@@ -180,8 +175,8 @@ class ObjectMethodManager:
 
         return definitions
 
-
-    def help(self, func_name: str = None):
+# TODO: technically, func_name should be some sort of enum so we can drop quotes when we invoke it.
+    def help(self, func_name: str):
         """Print a cli method's docstring."""
 
         if func_name is None:

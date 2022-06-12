@@ -22,5 +22,5 @@ setuptools.setup(
         "Operating System :: POSIX :: Linux",
     ],
     python_requires='>=3.6',
-    install_requires=['prompt-toolkit>=3.0.28']
+    install_requires=['prompt_toolkit>=3.0.28']
 )

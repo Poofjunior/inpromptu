@@ -1,20 +1,11 @@
 #!/usr/bin/env python3
 """Prompt-toolkit implementation of Inpromptu."""
 
-import pprint
-import os
-from math import floor
-import traceback
-from ast import literal_eval
 from prompt_toolkit import prompt, PromptSession
 from prompt_toolkit.shortcuts import CompleteStyle
 from prompt_toolkit.completion import Completer, Completion
-
 from .inpromptu_base import InpromptuBase
 from .inpromptu_base import container_split
-from .object_method_manager import ObjectMethodManager
-from .errors import UserInputError
-
 
 
 class Inpromptu(InpromptuBase):
@@ -27,26 +18,9 @@ class Inpromptu(InpromptuBase):
 
         self.session = PromptSession(self.prompt, completer=self)
 
-
     def input(self):
         return self.session.prompt(self.prompt + " ",
                                    complete_style=CompleteStyle.READLINE_LIKE)
-
-
-    def _fn_value_from_string(self, fn_name, arg_name, val_str):
-        """Converts param input from string to value appropriate for the signature."""
-        param_type = self.omm.method_defs[fn_name]['parameters'][arg_name]['type']
-        # Handle yucky edge case where "False" gets cast to True
-        # for bools, we'll accept True or False only.
-        if param_type == bool:
-            if val_str not in ["True", "False"]:
-                raise UserInputError("Error: valid options for bool type are " \
-                                     "either True or False.")
-            elif val_str == 'False':
-                return False
-        # Remaining cases behave predictably.
-        return param_type(literal_eval(val_str))
-
 
     def get_completions(self, document, complete_event):
         """yields completions for invoking a function with its parameters.

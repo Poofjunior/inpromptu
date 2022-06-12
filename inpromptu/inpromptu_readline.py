@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 """Class for inferring an introspective prompt."""
 import readline
-import pprint
 import os
 from math import floor
 import traceback
 
 from .inpromptu_base import InpromptuBase
 from .inpromptu_base import container_split
-from .object_method_manager import ObjectMethodManager
-from .errors import UserInputError
 
 
 # helper function for displaying completions.
@@ -57,7 +54,6 @@ class Inpromptu(InpromptuBase):
         # Note that this variable must be cleared when finished with it.
         self.completions = None
 
-
     def _match_display_hook(self, substitution, matches, longest_match_length):
         """_match_display_hook wrapper so we can at least read the exception.
 
@@ -69,7 +65,6 @@ class Inpromptu(InpromptuBase):
             return self.__match_display_hook(substitution, matches, longest_match_length)
         except Exception as e:
             traceback.print_exc()
-
 
     def __match_display_hook(self, substitution, matches, longest_match_length):
         """Display custom response when invoking tab completion."""
@@ -107,7 +102,6 @@ class Inpromptu(InpromptuBase):
         print()
         print(self.prompt, readline.get_line_buffer(), sep='', end='', flush=True)
 
-
     def input(self, prompt=None):
         """Wrapper for prompt function.
         Enables tab-completion while preserving full prompt prefix."""
@@ -117,7 +111,6 @@ class Inpromptu(InpromptuBase):
         else:
             self.prompt = self.__class__.prompt + " "
         return input(self.prompt)
-
 
     def complete(self, text, state, *args, **kwargs):
         """_complete wrapper so we can at least read the exceptions.
@@ -131,8 +124,6 @@ class Inpromptu(InpromptuBase):
             return self._complete(text, state, *args, **kwargs)
         except Exception as e:
             traceback.print_exc()
-
-
 
     def _complete(self, text, state, *args, **kwargs):
         """function invoked for completing partially-entered text.
