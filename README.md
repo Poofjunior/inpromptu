@@ -18,7 +18,7 @@ Inpromptu also provides a [prompt_toolkit](https://python-prompt-toolkit.readthe
 ## What Inpromptu Isn't
 Inpromptu creates an interactive prompt. Inpromptu is not:
 * a command line interface generator. See [argparse](https://docs.python.org/3/library/argparse.html), [python-fire](https://github.com/google/python-fire), or [click](https://click.palletsprojects.com/en/7.x/) for that.
-* a api-replacement for cmd.py. There are some differences. Have a go at the examples.
+* a api-replacement for cmd.py. There are some differences, mainly the lack of `do_` methods. Have a go at the examples.
 
 ## Requirements
 * Python 3.7 or later
