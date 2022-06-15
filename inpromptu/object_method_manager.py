@@ -75,15 +75,19 @@ class ObjectMethodManager:
         # invoke fgets separately.
         self.methods, self.property_getters = self._get_methods(method_ignore_list)
         # Insert a help method that prints the docstring into the callables.
+        # Note: do this before calling _get_method_defs() so we get sig params.
         self.methods['help'] = self.help
         self.callables = set({**self.methods, **self.property_getters}.keys())
         self.method_defs = self._get_method_defs()
+        # provide arg completion options for help.
+        help_arg_opts = [f"'{val}'" for val in self.callables]
+        self.method_defs['help']['parameters']['func_name']['options'] = help_arg_opts
 
-        #import pprint
-        #print("cli methods")
-        #pprint.pprint(self.methods)
-        #print("cli method definitions")
-        #pprint.pprint(self.method_defs)
+        import pprint
+        print("cli methods")
+        pprint.pprint(self.methods)
+        print("cli method definitions")
+        pprint.pprint(self.method_defs)
         #print("callables")
         #pprint.pprint(self.callables)
 
