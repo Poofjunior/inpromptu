@@ -197,20 +197,17 @@ class Inpromptu(InpromptuBase):
         ##print(f"found kwarg: {first_kwarg_found} | at index {first_kwarg_index}")
         #print(f"unfiltered params: {self.func_params}")
 
-
         # Then generate completion list from remaining possible params.
         func_param_completions = []
         for param_order_index, param_name in enumerate(self.func_params):
             completion = f"{param_name}="
             # No space case: <kwarg_name>=<value> is partially typed or fully typed but missing a space
-            # Bail early if the user entered unclosed brackets, brackes, strings.
             if line[-1] is not self.__class__.DELIM and param_entries[-1].startswith(completion):
-                # partially typed case.
                 partial_val_text = param_entries[-1].split('=')[-1]
                 func_param_completions = self.get_param_options(self.func_name, param_name, partial_val_text)
                 break
-                ## fully typed case.
-                #return None
+            # Bail early if the user entered unfinished text that can't be
+            # completed with predefined options.
             if not word_finished:
                 return None
             # Filter out already-populated argument options by name and position.
