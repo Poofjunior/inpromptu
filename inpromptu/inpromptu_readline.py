@@ -194,7 +194,7 @@ class Inpromptu(InpromptuBase):
             first_kwarg_index += 1
         self.func_params = self.func_params[first_kwarg_index:]
 
-        ##print(f"found kwarg: {first_kwarg_found} | at index {first_kwarg_index}")
+        #print(f"found kwarg: {first_kwarg_found} | at index {first_kwarg_index}")
         #print(f"unfiltered params: {self.func_params}")
 
         # Then generate completion list from remaining possible params.

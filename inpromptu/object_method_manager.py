@@ -83,11 +83,11 @@ class ObjectMethodManager:
         help_arg_opts = [f"'{val}'" for val in self.callables]
         self.method_defs['help']['parameters']['func_name']['options'] = help_arg_opts
 
-        import pprint
-        print("cli methods")
-        pprint.pprint(self.methods)
-        print("cli method definitions")
-        pprint.pprint(self.method_defs)
+        #import pprint
+        #print("cli methods")
+        #pprint.pprint(self.methods)
+        #print("cli method definitions")
+        #pprint.pprint(self.method_defs)
         #print("callables")
         #pprint.pprint(self.callables)
 
