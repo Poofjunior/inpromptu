@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 from inpromptu import Inpromptu
+from enum import Enum, auto
+
+class Gear(Enum):
+    crash_pads = auto()
+    dance_shoes = auto()
+    mysterious_fossil = auto()
 
 
 class TestDrive:
@@ -41,6 +47,9 @@ class TestDrive:
         self.passengers = passenger_list
         for passenger in self.passengers:
             print(f"adding: {passenger}")
+
+    def add_gear(self, gear: Gear):
+        print(f"adding {gear}")
 
     def add_specs_from_user_input(self):
         """Add specs from the user."""

@@ -164,9 +164,8 @@ class ObjectMethodManager:
                 elif parameter_name == 'cls':
                     parameter["default"] = self.class_instance.__class__
 
-                # Check for Enum types.
+                # Populate completions for Enum-based types.
                 if parameter_type is not None and issubclass(parameter_type, Enum):
-                    parameter["type"] = "Enum"
                     parameter["options"] = list(parameter_type.__members__.keys())
 
                 parameters[parameter_name] = parameter

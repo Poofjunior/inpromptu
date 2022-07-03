@@ -3,6 +3,7 @@
 import pprint
 from abc import ABC, abstractmethod
 from ast import literal_eval
+from enum import Enum
 from .object_method_manager import ObjectMethodManager
 from .errors import UserInputError
 
@@ -92,6 +93,9 @@ class InpromptuBase(ABC):
                                      "either True or False.")
             elif val_str == 'False':
                 return False
+        # Enum access by name (not by value) requires brackets.
+        if issubclass(param_type, Enum):
+            return param_type[val_str]
         # Remaining cases behave predictably.
         return param_type(literal_eval(val_str))
 
