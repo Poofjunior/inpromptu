@@ -36,7 +36,7 @@ class ObjectManager:
 
             attributes = {}
             for attribute_name in dir(object_inst):
-                if attribute_name.startswith('__'): # skip hidden attributes.
+                if attribute_name.startswith('_'): # skip hidden attributes.
                     continue
                 try:
                     value = get_dict_attr(object_inst, attribute_name)
@@ -122,7 +122,7 @@ class ObjectMethodManager:
             # Skip over methods we should explicitly ignore.
             # Skip over special "dunder" methods.
             # Skip over anything that isn't callable.
-            elif name in method_ignore_list or name.startswith('__') or \
+            elif name in method_ignore_list or name.startswith('_') or \
                  not callable(value):
                 continue
             else:
