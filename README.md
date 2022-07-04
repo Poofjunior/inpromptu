@@ -22,7 +22,7 @@ Inpromptu creates an interactive prompt. Inpromptu is not:
 * a api-replacement for cmd.py. There are some differences, mainly the lack of `do_` methods. Have a go at the examples.
 
 ## Requirements
-* Python 3.7 or later
+* Python 3.6 or later
 * all methods that will support completion must have all parameters type-hinted
 
 ## Installation
@@ -117,10 +117,10 @@ OR
 ```
 In other words, arguments can be filled out by name or by position or by a combination of position first, then by name--just like how *args and **kwds behave on normal python functions.
 
-So what are you waiting for? Why not take it for a test drive? From the top directory, run:
+So what are you waiting for? Why not take it for a test drive? From the example directory, run:
 
 ```
-python3 -m examples.test_drive
+python3 test_drive.py
 ```
 
 ## FAQs
@@ -133,11 +133,16 @@ Yes. In fact, core elements of Inpromptu can be hooked directly into [Python Pro
 See the examples folder for some inspiration.
 
 ### What's not implemented?
-* The [@overload](https://docs.python.org/3/library/typing.html#typing.overload) operator.
 * functions that use `*args` and `**kwargs` as input
-* input arguments that can be various types.
+* The [@overload](https://docs.python.org/3/library/typing.html#typing.overload) operator.
+* input arguments that can be various types (i.e: `Union[int, str, float]`).
 * functions wrapped in decorators: like `@cache`, `@cached_property` from functools
-  * these may work. Double check.
+  * Note: some cases may work already.
+
+### What's Going to be Implemented Next?
+* Bare Minimum Union type implementation:
+  * Unions where None is one of the options `Union[None, int]`
+* Explicit handling of functions wrapped in decorators.
 
 ## About the Author
 Inpromptu was written by someone who used cmd.py one-too-many times. There had to be a better solution.

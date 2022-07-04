@@ -46,7 +46,7 @@ class Inpromptu(InpromptuBase):
         readline.set_completer(self.complete)
         # Only split text to match on spaces. Default includes '{', '[', etc
         # which will be skipped by the results of text.
-        readline.set_completer_delims("= ") # only split text on spaces.
+        readline.set_completer_delims("= ") # Split on equals and spaces.
         readline.set_completion_display_matches_hook(self._match_display_hook)
         readline.parse_and_bind(f"{self.__class__.complete_key}: complete")
 
