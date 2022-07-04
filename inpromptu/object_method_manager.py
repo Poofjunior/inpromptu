@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Class for Inspecting and managing the methods of an object instance."""
 
+import sys
 from inspect import signature
 from enum import Enum
 
@@ -8,6 +9,10 @@ from enum import Enum
 # TODO: figure out clean way to trim out certain methods
 # TODO: have a way of exporting and importing structure.
 
+# Define StrEnums for generating the 'help' method.
+if sys.version_info < (3,11):
+    class StrEnum(str, Enum):
+        pass
 
 # Workaround because getmembers does not get functions decorated with @property
 # https://stackoverflow.com/questions/3681272/can-i-get-a-reference-to-a-python-property
@@ -21,6 +26,7 @@ def get_dict_attr(class_def, attr):
 
 class ObjectManager:
     """Inspects an object recursively and enables the invoking of any attribute's methods."""
+
 
     def __init__(self, class_instance):
         """Constructor."""
@@ -74,14 +80,17 @@ class ObjectMethodManager:
         # different signature, so we hold onto all properties so that we can
         # invoke fgets separately.
         self.methods, self.property_getters = self._get_methods(method_ignore_list)
-        # Insert a help method that prints the docstring into the callables.
+        # Insert a 'help' method into the callables that prints the docstring.
         # Note: do this before calling _get_method_defs() so we get sig params.
         self.methods['help'] = self.help
         self.callables = set({**self.methods, **self.property_getters}.keys())
         self.method_defs = self._get_method_defs()
-        # provide arg completion options for help.
-        help_arg_opts = [f"'{val}'" for val in self.callables]
-        self.method_defs['help']['parameters']['func_name']['options'] = help_arg_opts
+        # Provide help's arg completion options. Assign a custom type so that
+        # we don't need to use additional quotes when invoking literal_eval.
+        MethodName = StrEnum('MethodName', [(n, n) for n in self.callables])
+        self.method_defs['help']['parameters']['func_name']['type'] = MethodName
+        self.method_defs['help']['parameters']['func_name']['options'] = \
+            list(self.callables)
 
         #import pprint
         #print("cli methods")
@@ -178,9 +187,15 @@ class ObjectMethodManager:
 
         return definitions
 
-# TODO: technically, func_name should be some sort of enum so we can drop quotes when we invoke it.
     def help(self, func_name: str):
-        """Print a cli method's docstring."""
+        """Print a cli method's docstring.
+
+        This fn gets appended to the list of callable methods such that it can
+        be invoked like any other command.
+
+        func_name is annotated as a str type here but will be replaced with a
+        StrEnum type so that we can complete it without quotes.
+        """
 
         if func_name is None:
             print(self.help.__doc__)
