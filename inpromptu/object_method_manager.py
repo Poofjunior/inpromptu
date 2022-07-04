@@ -188,14 +188,12 @@ class ObjectMethodManager:
         return definitions
 
     def help(self, func_name: str):
-        """Print a cli method's docstring.
+        """Print a cli method's docstring."""
+        # This fn gets appended to the list of callable methods such that it
+        # be be invoked like any other command.
 
-        This fn gets appended to the list of callable methods such that it can
-        be invoked like any other command.
-
-        func_name is annotated as a str type here but will be replaced with a
-        StrEnum type so that we can complete it without quotes.
-        """
+        # func_name is annotated as a str type here but will be replaced with a
+        # StrEnum type so that we can complete it without quotes.
 
         if func_name is None:
             print(self.help.__doc__)

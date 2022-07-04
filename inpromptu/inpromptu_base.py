@@ -82,6 +82,16 @@ class InpromptuBase(ABC):
         # To be implemented by child classes.
         pass
 
+    def _get_param_options(self, func_name, param_name, partial_val_text):
+        """Return list of valid parameter completions."""
+        func_param_completions = []
+        # See if this type has a specific list of completions.
+        param_opts = self.omm.method_defs[func_name]['parameters'][param_name].get('options', [])
+        for param in param_opts:
+            if param.startswith(partial_val_text):
+                func_param_completions.append(param)
+        return func_param_completions
+
     def _fn_value_from_string(self, fn_name, arg_name, val_str):
         """Convert param input from string to value appropriate for the signature."""
         param_type = self.omm.method_defs[fn_name]['parameters'][arg_name]['type']

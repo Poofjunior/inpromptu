@@ -145,7 +145,7 @@ class Inpromptu(InpromptuBase):
         # skipped. "container_split" will handle when to match the text we get.
         text = text.lstrip() # what we are matching against.
         line = readline.get_line_buffer() # The whole line.
-        cmd_with_args, word_finished = container_split(line)
+        cmd_with_args, last_word_finished = container_split(line)
 
         # Complete the fn name.
         if len(cmd_with_args) == 0 or \
@@ -202,13 +202,16 @@ class Inpromptu(InpromptuBase):
         for param_order_index, param_name in enumerate(self.func_params):
             completion = f"{param_name}="
             # No space case: <kwarg_name>=<value> is partially typed or fully typed but missing a space
-            if line[-1] is not self.__class__.DELIM and param_entries[-1].startswith(completion):
+            if line[-1] is not self.__class__.DELIM and \
+                param_entries[-1].startswith(completion):
                 partial_val_text = param_entries[-1].split('=')[-1]
-                func_param_completions = self.get_param_options(self.func_name, param_name, partial_val_text)
+                func_param_completions = self._get_param_options(self.func_name,
+                                                                 param_name,
+                                                                 partial_val_text)
                 break
             # Bail early if the user entered unfinished text that can't be
             # completed with predefined options.
-            if not word_finished:
+            if not last_word_finished:
                 return None
             # Filter out already-populated argument options by name and position.
             skip = False
@@ -225,15 +228,4 @@ class Inpromptu(InpromptuBase):
         except IndexError:
             # IndexError means state has incremented too far, and we're done.
             return None
-
-
-    def get_param_options(self, func_name, param_name, partial_val_text):
-        """Return list of valid parameter completions."""
-        func_param_completions = []
-        # See if this type has a specific list of completions.
-        param_opts = self.omm.method_defs[func_name]['parameters'][param_name].get('options', [])
-        for param in param_opts:
-            if param.startswith(partial_val_text):
-                func_param_completions.append(param)
-        return func_param_completions
 

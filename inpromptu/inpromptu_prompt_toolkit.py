@@ -45,6 +45,7 @@ class Inpromptu(InpromptuBase):
         line = document.lines[0]
         cmd_with_args, last_word_finished = container_split(line)
         completions = []
+        display={} # what to show onscreen as the completion option.
 
         # Complete the fn name.
         if len(cmd_with_args) == 0 or \
@@ -64,8 +65,8 @@ class Inpromptu(InpromptuBase):
             # Abort upon finding first keyword argument.
             first_kwarg_found = False
             first_kwarg_index = 0
-            param_signature = cmd_with_args[1:]
-            for entry_index, param_entry in enumerate(param_signature):
+            param_entries = cmd_with_args[1:]
+            for entry_index, param_entry in enumerate(param_entries):
                 kwarg = None
                 # Check if text entry is a fully-entered kwarg.
                 for param_order_index, param_name in enumerate(self.func_params):
@@ -81,7 +82,7 @@ class Inpromptu(InpromptuBase):
                 if first_kwarg_found:
                     break
                 # Don't remove the last element if it is not fully entered.
-                if param_entry == param_signature[-1] and line[-1] != self.__class__.DELIM:
+                if param_entry == param_entries[-1] and line[-1] != self.__class__.DELIM:
                     break
                 first_kwarg_index += 1
 
@@ -93,28 +94,37 @@ class Inpromptu(InpromptuBase):
             # Now generate completion list for params not yet entered.
             for param_order_index, param_name in enumerate(self.func_params):
                 completion = f"{param_name}="
-                if not last_word_finished:
-                    return
-                # No space case: arg is fully typed but missing a space.
+                # No space case: <kwarg_name>=<value> is partially typed or fully typed but missing a space.
                 if line[-1] != self.__class__.DELIM and \
-                    param_signature[-1].startswith(completion) and \
-                    last_word_finished:
+                    param_entries[-1].startswith(completion):
+                    partial_val_text = param_entries[-1].split('=')[-1]
+                    func_param_completions = \
+                        self._get_param_options(self.func_name,
+                                                param_name,
+                                                partial_val_text)
+                    completions = [completion+v for v in func_param_completions]
+                    display = {completion+v:v for v in func_param_completions}
+                    break
+                # Bail early if the user entered unfinished text that can't be
+                # completed with predefined options.
+                if not last_word_finished:
                     return
                 # Filter out already-populated argument options by name and position.
                 skip = False
-                for param_entry in param_signature:
+                for param_entry in param_entries:
                     if param_entry.startswith(completion):
                         skip = True
                         break
                 # regular check
                 if completion.startswith(word) and not skip:
                     completions.append(completion)
+                    display[completion] = completion
 
         # Finally, yield any completions.
         for completion in completions:
             yield Completion(completion,
                              start_position=-len(word),
-                             display=completion,
+                             display=display.get(completion, completion),
                              display_meta=None,
                              style="bg:ansiblack fg:ansiyellow")
 
