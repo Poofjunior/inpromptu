@@ -11,6 +11,7 @@ Born from a need to quickly interact with real-world devices and a frustration f
 Features include
 
 * seamless automatic tab completion using a method's function signature
+  * supports: `bool`, `int`, `float`, `str`, anything that inherits from `Enum`
 * automatic help generation using a method's docstring
 
 Inpromptu also provides a [prompt_toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/)-compatible completer so you can build more complicated prompts while getting all of inpromptu's introspection elements for free.
