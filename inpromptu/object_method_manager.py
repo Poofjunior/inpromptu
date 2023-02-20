@@ -4,6 +4,13 @@
 import sys
 from inspect import signature
 from enum import Enum
+from typing import Union
+# For versions before python 3.7, we need the backport of get_origin
+if sys.version_info < (3,7):
+    from typing_extensions import get_origin, get_args
+else:
+    from typing import get_origin, get_args
+
 
 # TODO: figure out how to warn against multipledispatch
 # TODO: figure out clean way to trim out certain methods
@@ -88,9 +95,9 @@ class ObjectMethodManager:
         # Provide help's arg completion options. Assign a custom type so that
         # we don't need to use additional quotes when invoking literal_eval.
         MethodName = StrEnum('MethodName', [(n, n) for n in self.callables])
-        self.method_defs['help']['parameters']['func_name']['type'] = MethodName
+        self.method_defs['help']['parameters']['func_name']['type'] = [MethodName]
         self.method_defs['help']['parameters']['func_name']['options'] = \
-            list(self.callables)
+            [str(a) for a in MethodName]
 
         #import pprint
         #print("cli methods")
@@ -133,8 +140,7 @@ class ObjectMethodManager:
     def _get_method_defs(self):
         """Build method definitions.
 
-        Returns:
-            Dictionary of method names mapped to their definitions.
+        :return: Dictionary of method names mapped to their definitions.
         """
         definitions = {}
 
@@ -153,33 +159,43 @@ class ObjectMethodManager:
             for parameter_name in sig.parameters:
                 param_order.append(parameter_name)
                 parameter = {}
-                parameter_type = None
+                param_types = []
                 parameter_sig = sig.parameters[parameter_name]
                 if parameter_sig.annotation is not parameter_sig.empty:
-                    parameter_type = parameter_sig.annotation
-                parameter['type'] = parameter_type if parameter_type is not None else None
+                    if get_origin(parameter_sig.annotation) is Union:
+                        param_types = list(get_args(parameter_sig.annotation))
+                    else:
+                        param_types = [parameter_sig.annotation]
 
-
-                # Enforce type hinting for all decoorated methods.
-                if parameter['type'] is None and parameter_name not in ['self', 'cls']:
+                # Enforce type hinting for all decorated methods.
+                if not param_types and parameter_name not in ['self', 'cls']:
                     raise SyntaxError(f"Error: {method_name} must be type hinted. \
                                         Cannot infer type for arg: {parameter_name}.")
-
-                # Check for defaults.
+                # Check for parameter default value. Populate self & cls.
                 if parameter_sig.default is not parameter_sig.empty:
                     parameter["default"] = parameter_sig.default
                 elif parameter_name == 'self':
                     parameter["default"] = self.class_instance
                 elif parameter_name == 'cls':
                     parameter["default"] = self.class_instance.__class__
-
-                # Populate completions for Enum-based types.
-                if parameter_type is not None and issubclass(parameter_type, Enum):
-                    parameter["options"] = list(parameter_type.__members__.keys())
-
+                # Add enum completions for each enum type in the list of types.
+                param_options = []
+                for param_type in param_types:
+                    if param_type is not None and issubclass(param_type, Enum):
+                        param_options.extend([str(a) for a in param_type])
+                    # Add bool completions.
+                    elif param_type is bool:
+                        param_options.extend(["True", "False"])
+                # Populate non-empty dict fields.
+                if param_options:
+                    parameter['options'] = param_options
+                if param_types:
+                    parameter['type'] = param_types
                 parameters[parameter_name] = parameter
 
-            definitions[method_name] = {
+            # Create the top-level dictionary structure for this method.
+            definitions[method_name] = \
+            {
                 "param_order": param_order,
                 "parameters": parameters,
                 "doc": method.__doc__

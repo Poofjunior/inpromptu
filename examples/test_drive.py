@@ -2,10 +2,16 @@
 from inpromptu import Inpromptu
 from enum import Enum, auto
 
+from typing import Union
+
 class Gear(Enum):
     crash_pads = auto()
     dance_shoes = auto()
     mysterious_fossil = auto()
+
+class Junk(Enum):
+    old_sofa = auto()
+    vanity = auto()
 
 
 class TestDrive:
@@ -46,10 +52,14 @@ class TestDrive:
     def add_passengers(self, passenger_list: list, buckle_them: bool = True):
         self.passengers = passenger_list
         for passenger in self.passengers:
-            print(f"adding: {passenger}")
+            buckle_str = "" if buckle_them else "NOT "
+            print(f"adding {passenger} and {buckle_str}buckling them.")
 
     def add_gear(self, gear: Gear):
         print(f"adding {gear}")
+
+    def add_misc(self, stuff: Union[Gear, Junk]):
+        print(f"adding {stuff.name}")
 
     def add_specs_from_user_input(self):
         """Add specs from the user."""

@@ -94,18 +94,26 @@ class InpromptuBase(ABC):
 
     def _fn_value_from_string(self, fn_name, arg_name, val_str):
         """Convert param input from string to value appropriate for the signature."""
-        param_type = self.omm.method_defs[fn_name]['parameters'][arg_name]['type']
+        param_types = self.omm.method_defs[fn_name]['parameters'][arg_name]['type']
         # Handle yucky edge case where "False" gets cast to True
         # for bools, we'll accept True or False only.
-        if param_type == bool:
-            if val_str not in ["True", "False"]:
+        if bool in param_types:
+            bool_dict = {"True": True, "False": False}
+            if val_str in bool_dict:
+                return bool_dict[val_str]
+            # Error if the input must be a bool but cannot be read as such.
+            if len(param_types) == 1:
                 raise UserInputError("Error: valid options for bool type are " \
                                      "either True or False.")
-            elif val_str == 'False':
-                return False
-        # Enum access by name (not by value) requires brackets.
-        if issubclass(param_type, Enum):
-            return param_type[val_str]
+
+        # Iterate through types. Try to convert input to enums first.
+        for param_type in param_types:
+            # Enum access by name (not by value) requires brackets.
+            if issubclass(param_type, Enum):
+                # Try to parse the input as an enum.
+                enum_class, name = val_str.split(".")
+                if enum_class == param_type.__name__:
+                    return param_type[name]
         # Remaining cases behave predictably.
         return param_type(literal_eval(val_str))
 
