@@ -41,13 +41,14 @@ class TestDrive:
         return self.vehicle_speed
 
     @speed.setter
-    def speed(self, speed: float = 0):
+    def speed(self, mph: float = 0):
         """Set the current speed"""
         self.vehicle_speed = speed
 
-    def add_fuel(self, gallons: float = 0, top_off: bool = False):
+    def add_fuel(self, gallons: Union[float , None], top_off: bool = False):
         """add some fuel."""
-        self.gallons += gallons
+        if gallons:
+            self.gallons += gallons
 
     def add_passengers(self, passenger_list: list, buckle_them: bool = True):
         self.passengers = passenger_list

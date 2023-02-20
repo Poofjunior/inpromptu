@@ -105,7 +105,6 @@ class InpromptuBase(ABC):
             if len(param_types) == 1:
                 raise UserInputError("Error: valid options for bool type are " \
                                      "either True or False.")
-
         # Iterate through types. Try to convert input to enums first.
         for param_type in param_types:
             # Enum access by name (not by value) requires brackets.
@@ -114,6 +113,9 @@ class InpromptuBase(ABC):
                 enum_class, name = val_str.split(".")
                 if enum_class == param_type.__name__:
                     return param_type[name]
+        # Handle NoneType.
+        if type(None) in param_types and val_str == "None":
+            return None
         # Remaining cases behave predictably.
         return param_type(literal_eval(val_str))
 

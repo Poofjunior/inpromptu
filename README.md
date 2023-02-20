@@ -135,15 +135,15 @@ See the examples folder for some inspiration.
 ### What's not implemented?
 * functions that use `*args` and `**kwargs` as input
 * The [@overload](https://docs.python.org/3/library/typing.html#typing.overload) operator.
-* input arguments that can be various types (i.e: `Union[int, str, float]`).
 * functions wrapped in decorators: like `@cache`, `@cached_property` from functools
   * Note: some cases may work already.
+* Recording a series of commands.
 
 ### What's Going to be Implemented Next?
-* Bare Minimum Union type implementation:
-  * Unions where None is one of the options `Union[None, int]`
 * Explicit handling of functions wrapped in decorators.
+* Overloading completions for specified functions
 
 ## About the Author
-Inpromptu was written by someone who used cmd.py one-too-many times. There had to be a better solution.
+Inpromptu was written by someone who used cmd.py one-too-many times.
+There had to be a better solution.
 And Inpromptu is one of many.
