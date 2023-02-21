@@ -101,8 +101,9 @@ class Inpromptu(InpromptuBase):
             # Track argument index such that we only display valid options.
             for arg_completion in matches:
                 arg = arg_completion.split("=")[0]
-                arg_type = self.omm.method_defs[self.func_name]['parameters'][arg]['type']
-                print(f"{arg}=<{arg_type.__name__}>", end=" ")
+                arg_types = self.omm.method_defs[self.func_name]['parameters'][arg]['types']
+                arg_types_str = "|".join([a.__name__ for a in arg_types])
+                print(f"{arg}=<{arg_types_str}>", end=" ")
         print()
         print(self.prompt, readline.get_line_buffer(), sep='', end='', flush=True)
 

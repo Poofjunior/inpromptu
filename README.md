@@ -133,13 +133,14 @@ Yes. In fact, core elements of Inpromptu can be hooked directly into [Python Pro
 See the examples folder for some inspiration.
 
 ### What's not implemented?
-* functions that use `*args` and `**kwargs` as input
+* functions that use `*args` and `**kwds` as input
 * The [@overload](https://docs.python.org/3/library/typing.html#typing.overload) operator.
 * functions wrapped in decorators: like `@cache`, `@cached_property` from functools
   * Note: some cases may work already.
 * Recording a series of commands.
 
 ### What's Going to be Implemented Next?
+* `*args` and `**kwds`
 * Explicit handling of functions wrapped in decorators.
 * Overloading completions for specified functions
 

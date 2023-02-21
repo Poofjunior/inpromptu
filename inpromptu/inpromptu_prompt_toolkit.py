@@ -69,7 +69,7 @@ class Inpromptu(InpromptuBase):
             for entry_index, param_entry in enumerate(param_entries):
                 kwarg = None
                 # Check if text entry is a fully-entered kwarg.
-                for param_order_index, param_name in enumerate(self.func_params):
+                for param_name in self.func_params:
                     # kwargs are indentified by the string: "kwarg_name=kwarg_val"
                     completion = f"{param_name}="
                     #print(f"param_entry: {param_entry} | completion: {complection}")
@@ -92,7 +92,7 @@ class Inpromptu(InpromptuBase):
             #print(f"unfiltered params: {self.func_params}")
 
             # Now generate completion list for params not yet entered.
-            for param_order_index, param_name in enumerate(self.func_params):
+            for param_name in self.func_params:
                 completion = f"{param_name}="
                 # No space case: <kwarg_name>=<value> is partially typed or fully typed but missing a space.
                 if line[-1] != self.__class__.DELIM and \
@@ -118,7 +118,9 @@ class Inpromptu(InpromptuBase):
                 # regular check
                 if completion.startswith(word) and not skip:
                     completions.append(completion)
-                    display[completion] = completion
+                    arg_types = self.omm.method_defs[self.func_name]['parameters'][param_name]['types']
+                    arg_types_str = "|".join([a.__name__ for a in arg_types])
+                    display[completion] = completion + f"<{arg_types_str}>"
 
         # Finally, yield any completions.
         for completion in completions:

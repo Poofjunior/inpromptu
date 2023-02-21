@@ -94,7 +94,7 @@ class InpromptuBase(ABC):
 
     def _fn_value_from_string(self, fn_name, arg_name, val_str):
         """Convert param input from string to value appropriate for the signature."""
-        param_types = self.omm.method_defs[fn_name]['parameters'][arg_name]['type']
+        param_types = self.omm.method_defs[fn_name]['parameters'][arg_name]['types']
         # Handle yucky edge case where "False" gets cast to True
         # for bools, we'll accept True or False only.
         if bool in param_types:

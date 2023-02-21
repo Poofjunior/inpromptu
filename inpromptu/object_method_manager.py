@@ -95,7 +95,7 @@ class ObjectMethodManager:
         # Provide help's arg completion options. Assign a custom type so that
         # we don't need to use additional quotes when invoking literal_eval.
         MethodName = StrEnum('MethodName', [(n, n) for n in self.callables])
-        self.method_defs['help']['parameters']['func_name']['type'] = [MethodName]
+        self.method_defs['help']['parameters']['func_name']['types'] = [MethodName]
         self.method_defs['help']['parameters']['func_name']['options'] = \
             [str(a) for a in MethodName]
 
@@ -142,6 +142,7 @@ class ObjectMethodManager:
 
         :return: Dictionary of method names mapped to their definitions.
         """
+
         definitions = {}
 
         for method_name, method in self.methods.items():
@@ -156,28 +157,30 @@ class ObjectMethodManager:
             #while hasattr(method, "__wrapped__"):
             #    method = method.__wrapped__
 
-            for parameter_name in sig.parameters:
+            # Useful for parsing function signature.
+            # https://docs.python.org/3/tutorial/controlflow.html#special-parameters
+            for parameter_name, param in sig.parameters.items():
+                # Note: parameter_name does not include '*' or '**' prefix.
                 param_order.append(parameter_name)
-                parameter = {}
+                param_data = {'kind': param.kind}
                 param_types = []
-                parameter_sig = sig.parameters[parameter_name]
-                if parameter_sig.annotation is not parameter_sig.empty:
-                    if get_origin(parameter_sig.annotation) is Union:
-                        param_types = list(get_args(parameter_sig.annotation))
+                if param.annotation is not param.empty:
+                    if get_origin(param.annotation) is Union:
+                        param_types = list(get_args(param.annotation))
                     else:
-                        param_types = [parameter_sig.annotation]
+                        param_types = [param.annotation]
 
                 # Enforce type hinting for all decorated methods.
                 if not param_types and parameter_name not in ['self', 'cls']:
                     raise SyntaxError(f"Error: {method_name} must be type hinted. \
                                         Cannot infer type for arg: {parameter_name}.")
                 # Check for parameter default value. Populate self & cls.
-                if parameter_sig.default is not parameter_sig.empty:
-                    parameter["default"] = parameter_sig.default
+                if param.default is not param.empty:
+                    param_data["default"] = param.default
                 elif parameter_name == 'self':
-                    parameter["default"] = self.class_instance
+                    param_data["default"] = self.class_instance
                 elif parameter_name == 'cls':
-                    parameter["default"] = self.class_instance.__class__
+                    param_data["default"] = self.class_instance.__class__
                 # Add enum completions for each enum type in the list of types.
                 param_options = []
                 for param_type in param_types:
@@ -188,10 +191,10 @@ class ObjectMethodManager:
                         param_options.extend(["True", "False"])
                 # Populate non-empty dict fields.
                 if param_options:
-                    parameter['options'] = param_options
+                    param_data['options'] = param_options
                 if param_types:
-                    parameter['type'] = param_types
-                parameters[parameter_name] = parameter
+                    param_data['types'] = param_types
+                parameters[parameter_name] = param_data
 
             # Create the top-level dictionary structure for this method.
             definitions[method_name] = \

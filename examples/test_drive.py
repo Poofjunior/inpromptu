@@ -59,7 +59,7 @@ class TestDrive:
     def add_gear(self, gear: Gear):
         print(f"adding {gear}")
 
-    def add_misc(self, stuff: Union[Gear, Junk]):
+    def add_misc_item(self, stuff: Union[Gear, Junk]):
         print(f"adding {stuff.name}")
 
     def add_specs_from_user_input(self):
