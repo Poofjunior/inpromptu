@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from inpromptu import Inpromptu
 from enum import Enum, auto
+from typing import Union
 
 class Gear(Enum):
     crash_pads = auto()
@@ -18,6 +19,7 @@ class TestDrive:
         self.num_doors = 0
         self.passengers = []
         self.car_name = "first car"
+        self.friend = None
 
     @property
     def name(self):
@@ -49,7 +51,19 @@ class TestDrive:
             print(f"adding: {passenger}")
 
     def add_gear(self, gear: Gear):
+        """Add gear."""
         print(f"adding {gear}")
+
+
+    def add_friend(self, friend: Union[str, None] = None):
+        if friend is None:
+            print("Removing friend!")
+        else:
+            print(f"adding {friend}")
+        self.friend = friend
+
+    def remove_friend(self):
+        self.add_friend(None)
 
     def add_specs_from_user_input(self):
         """Add specs from the user."""

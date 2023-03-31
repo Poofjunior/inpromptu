@@ -94,20 +94,30 @@ class InpromptuBase(ABC):
 
     def _fn_value_from_string(self, fn_name, arg_name, val_str):
         """Convert param input from string to value appropriate for the signature."""
-        param_type = self.omm.method_defs[fn_name]['parameters'][arg_name]['type']
+        # TODO: handle Union types.
+        #       Make the 'type' field a list of all possible types.
+        #       Enforce a strict order for conversion.
+        #param_type = self.omm.method_defs[fn_name]['parameters'][arg_name]['type']
+        param_types = self.omm.method_defs[fn_name]['parameters'][arg_name]['types']
         # Handle yucky edge case where "False" gets cast to True
         # for bools, we'll accept True or False only.
-        if param_type == bool:
+        #if param_type == bool:
+        if bool in param_types:
             if val_str not in ["True", "False"]:
                 raise UserInputError("Error: valid options for bool type are " \
                                      "either True or False.")
             elif val_str == 'False':
                 return False
-        # Enum access by name (not by value) requires brackets.
-        if issubclass(param_type, Enum):
-            return param_type[val_str]
-        # Remaining cases behave predictably.
-        return param_type(literal_eval(val_str))
+        for param_type in param_types:
+            try:
+                # Enum access by name (not by value) requires brackets.
+                if issubclass(param_type, Enum):
+                    return param_type[val_str]
+                # Remaining cases behave predictably.
+                return param_type(literal_eval(val_str))
+            except:
+                print("Exception occured!")
+                raise
 
     def cmdloop(self, loop=True):
         """Repeatedly issue a prompt, accept input, and dispatch to action

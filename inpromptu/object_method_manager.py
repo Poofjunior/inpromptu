@@ -2,6 +2,7 @@
 """Class for Inspecting and managing the methods of an object instance."""
 
 import sys
+import typing
 from inspect import signature
 from enum import Enum
 
@@ -88,17 +89,17 @@ class ObjectMethodManager:
         # Provide help's arg completion options. Assign a custom type so that
         # we don't need to use additional quotes when invoking literal_eval.
         MethodName = StrEnum('MethodName', [(n, n) for n in self.callables])
-        self.method_defs['help']['parameters']['func_name']['type'] = MethodName
+        self.method_defs['help']['parameters']['func_name']['types'] = [MethodName]
         self.method_defs['help']['parameters']['func_name']['options'] = \
             list(self.callables)
 
-        #import pprint
-        #print("cli methods")
-        #pprint.pprint(self.methods)
-        #print("cli method definitions")
-        #pprint.pprint(self.method_defs)
-        #print("callables")
-        #pprint.pprint(self.callables)
+        import pprint
+        print("cli methods")
+        pprint.pprint(self.methods)
+        print("cli method definitions")
+        pprint.pprint(self.method_defs)
+        print("callables")
+        pprint.pprint(self.callables)
 
     def _get_methods(self, method_ignore_list = []):
         """Collect all methods but avoid the ones in the method_ignore_list."""
@@ -153,19 +154,16 @@ class ObjectMethodManager:
             for parameter_name in sig.parameters:
                 param_order.append(parameter_name)
                 parameter = {}
-                parameter_type = None
+                param_type = None
                 parameter_sig = sig.parameters[parameter_name]
                 if parameter_sig.annotation is not parameter_sig.empty:
-                    parameter_type = parameter_sig.annotation
-                parameter['type'] = parameter_type if parameter_type is not None else None
-
-
+                    param_type = parameter_sig.annotation
                 # Enforce type hinting for all decoorated methods.
-                if parameter['type'] is None and parameter_name not in ['self', 'cls']:
+                if param_type is None and parameter_name not in ['self', 'cls']:
                     raise SyntaxError(f"Error: {method_name} must be type hinted. \
                                         Cannot infer type for arg: {parameter_name}.")
 
-                # Check for defaults.
+                # Check for argument defaults.
                 if parameter_sig.default is not parameter_sig.empty:
                     parameter["default"] = parameter_sig.default
                 elif parameter_name == 'self':
@@ -173,9 +171,24 @@ class ObjectMethodManager:
                 elif parameter_name == 'cls':
                     parameter["default"] = self.class_instance.__class__
 
+                # Handle Union types, which get annotated differently after the
+                # result of getting called by signature()
+                # Note: this is improved with get_origin(...) as of Python 3.8.
+                if hasattr(param_type, "__origin__") and \
+                    hasattr(param_type, "__args__"):
+                    parameter['types'] = param_type.__args__
+                else:
+                    parameter['types'] = [param_type]
+
                 # Populate completions for Enum-based types.
-                if parameter_type is not None and issubclass(parameter_type, Enum):
-                    parameter["options"] = list(parameter_type.__members__.keys())
+                parameter["options"] = []
+                # We must aggregate all Enum types if we have a Union type.
+                print(f"param: {parameter_name}")
+                for param_type in parameter['types']:
+                    print(f"  param option is: {param_type}")
+                    # self and cls do not populate param_type, so check for None.
+                    if param_type is not None and issubclass(param_type, Enum):
+                        parameter["options"].extend(list(param_type.__members__.keys()))
 
                 parameters[parameter_name] = parameter
 
