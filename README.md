@@ -12,7 +12,6 @@ Features include
 * seamless automatic tab completion using a method's function signature
   * supports: `bool`, `int`, `float`, `str`, anything that inherits from `Enum`, and `@property`-decorated methods (getter and setters)
 * automatic help generation directly from a method's docstring
-* a GUI. See [magicgui](https://pyapp-kit.github.io/magicgui/) for a project in the same spirit.
 
 Inpromptu also provides a [prompt_toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/)-compatible completer so you can build more complicated prompts while getting all of inpromptu's introspection elements for free.
 
@@ -20,6 +19,7 @@ Inpromptu also provides a [prompt_toolkit](https://python-prompt-toolkit.readthe
 Inpromptu creates an interactive prompt. Inpromptu is not:
 * a command line interface generator. See [argparse](https://docs.python.org/3/library/argparse.html), [python-fire](https://github.com/google/python-fire), or [click](https://click.palletsprojects.com/en/7.x/) for that.
 * a api-replacement for cmd.py. There are some differences, mainly the lack of `do_` methods. Have a go at the examples.
+* a GUI with graphical elements. See [magicgui](https://pyapp-kit.github.io/magicgui/) for a project in the same spirit.
 
 ## Requirements
 * Python 3.6 or later
