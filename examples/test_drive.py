@@ -43,7 +43,7 @@ class TestDrive:
     @speed.setter
     def speed(self, mph: float = 0):
         """Set the current speed"""
-        self.vehicle_speed = speed
+        self.vehicle_speed = mph
 
     def add_fuel(self, gallons: Union[float , None], top_off: bool = False):
         """add some fuel."""
@@ -59,8 +59,8 @@ class TestDrive:
     def add_gear(self, gear: Gear):
         print(f"adding {gear}")
 
-    def add_misc_item(self, stuff: Union[Gear, Junk]):
-        print(f"adding {stuff.name}")
+    def add_misc_item(self, stuff: Union[Gear, Junk, str]):
+        print(f"adding {str(stuff)}.")
 
     def add_specs_from_user_input(self):
         """Add specs from the user."""

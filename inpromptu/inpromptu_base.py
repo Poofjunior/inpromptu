@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Base Class for inferring an introspective prompt."""
 import pprint
+import traceback
 from abc import ABC, abstractmethod
 from ast import literal_eval
 from enum import Enum
@@ -67,9 +68,9 @@ class InpromptuBase(ABC):
     complete_key = 'tab'
     DELIM = ' '
 
-    def __init__(self, class_instance):
+    def __init__(self, class_instance, methods_to_ignore = [], var_arg_subs = {}):
         """Constructor."""
-        self.omm = ObjectMethodManager(class_instance)
+        self.omm = ObjectMethodManager(class_instance, methods_to_ignore, var_arg_subs)
 
         # In-function completions for calling input() within a fn.
         # Note that this variable must be cleared when finished with it.
@@ -92,32 +93,42 @@ class InpromptuBase(ABC):
                 func_param_completions.append(param)
         return func_param_completions
 
-    def _fn_value_from_string(self, fn_name, arg_name, val_str):
+    def _fn_param_from_string(self, fn_name, arg_name, val_str):
         """Convert param input from string to value appropriate for the signature."""
+        if not val_str:
+            raise ValueError(f"val_str cannot be empty.")
         param_types = self.omm.method_defs[fn_name]['parameters'][arg_name]['types']
-        # Handle yucky edge case where "False" gets cast to True
-        # for bools, we'll accept True or False only.
-        if bool in param_types:
-            bool_dict = {"True": True, "False": False}
-            if val_str in bool_dict:
-                return bool_dict[val_str]
-            # Error if the input must be a bool but cannot be read as such.
-            if len(param_types) == 1:
-                raise UserInputError("Error: valid options for bool type are " \
-                                     "either True or False.")
         # Iterate through types. Try to convert input to enums first.
         for param_type in param_types:
             # Enum access by name (not by value) requires brackets.
             if issubclass(param_type, Enum):
                 # Try to parse the input as an enum.
-                enum_class, name = val_str.split(".")
-                if enum_class == param_type.__name__:
-                    return param_type[name]
-        # Handle NoneType.
-        if type(None) in param_types and val_str == "None":
-            return None
-        # Remaining cases behave predictably.
-        return param_type(literal_eval(val_str))
+                try:
+                    enum_class, name = val_str.split(".")
+                    if enum_class == param_type.__name__:
+                        return param_type[name]
+                except (ValueError, KeyError):
+                    pass
+        # Try to convert to a valid type and return it.
+        # Use literal_eval first to avoid unwanted conversions.
+        # Handle bools, ints, floats, None, and strings enclosed in quotes.
+        try:
+            value = literal_eval(val_str)
+            if type(value) in param_types:
+                return value
+        except ValueError:
+            pass
+        # Call each constructor manually.
+        for param_type in param_types:
+            try:
+                return param_type(val_str)
+            except (TypeError, ValueError):
+                pass
+        # Error if we made it this far.
+        raise UserInputError(
+            f"For function {fn_name} parameter {arg_name}, value "
+            f"'{val_str}' could not be evaluated as any of the following " 
+            f"types: {param_types}.")
 
     def cmdloop(self, loop=True):
         """Repeatedly issue a prompt, accept input, and dispatch to action
@@ -147,8 +158,7 @@ class InpromptuBase(ABC):
                         this = self.omm.class_instance
                         return_val = self.omm.property_getters[fn_name](this)
                     except Exception as e:
-                        print(f"{fn_name} raised an excecption while being executed.")
-                        print(e)
+                        print(f"function {fn_name} raised an excecption while being executed.")
                     # Reset any completions set during this function.
                     finally:
                         self.completions = None
@@ -184,7 +194,7 @@ class InpromptuBase(ABC):
                                  "specified before any keyword arguments.")
                         arg_name = param_order[arg_index]
                         val_str = arg_block
-                    val = self._fn_value_from_string(fn_name, arg_name, val_str)
+                    val = self._fn_param_from_string(fn_name, arg_name, val_str)
                     kwargs[arg_name] = val
 
                 # Populate missing params with their defaults.
@@ -210,13 +220,13 @@ class InpromptuBase(ABC):
                     return_val = self.omm.methods[fn_name](**kwargs)
                 except Exception as e:
                     print(f"{fn_name} raised an exception while being executed.")
-                    print(e)
+                    print(traceback.format_exc())
                 # Reset any completions set during this function.
                 finally:
                     self.completions = None
                 if return_val is not None:
                     pprint.pprint(return_val)
-            except (EOFError, UserInputError) as e:
+            except (EOFError, ValueError, UserInputError) as e:
                 print(e)
                 line = 'EOF'
             except KeyboardInterrupt:

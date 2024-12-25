@@ -74,10 +74,10 @@ class ObjectManager:
 class ObjectMethodManager:
     """Inspects an object and aggregates its callable methods."""
 
-    def __init__(self, class_instance, *args, method_ignore_list=[], **kwargs):
+    def __init__(self, class_instance, methods_to_skip = [], var_arg_subs = {}):
         """collect functions."""
 
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.class_instance = class_instance
 
         # Containers for methods and their signatures.
@@ -86,7 +86,7 @@ class ObjectMethodManager:
         # From the user perspective, fget and fset have the same name, but
         # different signature, so we hold onto all properties so that we can
         # invoke fgets separately.
-        self.methods, self.property_getters = self._get_methods(method_ignore_list)
+        self.methods, self.property_getters = self._get_methods(methods_to_skip)
         # Insert a 'help' method into the callables that prints the docstring.
         # Note: do this before calling _get_method_defs() so we get sig params.
         self.methods['help'] = self.help
@@ -98,6 +98,8 @@ class ObjectMethodManager:
         self.method_defs['help']['parameters']['func_name']['types'] = [MethodName]
         self.method_defs['help']['parameters']['func_name']['options'] = \
             [str(a) for a in MethodName]
+
+        #self._apply_variable_argument_substitutions(var_arg_subs)
 
         #import pprint
         #print("cli methods")
