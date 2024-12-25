@@ -3,7 +3,7 @@ A library for inferring interactive prompts from object instances.
 
 
 ## What Inpromptu Is
-Inpromptu is a near-direct replacement for Python's built-in [cmd.py](https://docs.python.org/3/library/cmd.html) utility.
+Inpromptu is a near-direct replacement for Python's built-in [cmd.py](https://docs.python.org/3/library/cmd.html) utility for rapidly creating a *REPL* (read-evaluate-print-loop) interface.
 But instead of rewriting an extra class with special `do_` methods, Inpromptu will infer a prompt from the class directly.
 Inpromptu takes an object instance's callables and exposes them in a read-evaluate-print-loop that supports tab-completion.
 
@@ -72,7 +72,7 @@ This should produce a prompt:
 ```
 >>>
 ```
-Press tab twice to show all your callable attributes.
+Press **tab** twice to show all your callable attributes.
 ```
 honk            speed
 >>>
@@ -98,7 +98,7 @@ Press tab to complete any function.
 ```
 >>> add_fuel
 ```
-Put a space between the command and press tab twice.
+Put a space between the command and press **tab** twice.
 ```
 gallons=<float> top_off=<False>
 >>> add_fuel 
@@ -121,6 +121,23 @@ So what are you waiting for? Why not take it for a test drive? From the example 
 
 ```
 python3 test_drive.py
+```
+
+### Customization
+It's possible to explicitly specify completions with the `set_completions` method.
+
+```python
+my_test_drive = TestDrive()
+my_prompt = Inpromptu(my_test_drive)
+my_prompt.set_completion_options('add_misc_item', 'stuff',
+                                 ['fridge', 'kelp', 'biscuits',
+                                  'the_one_ring', 'flux_capacitor'])
+my_prompt.cmdloop()
+```
+Now entering the `add_misc_item` method and double-pressing the **tab** key should produce
+```
+>>> add_misc_item stuff=
+biscuits        flux_capacitor  fridge          kelp            the_one_ring    
 ```
 
 ## FAQs

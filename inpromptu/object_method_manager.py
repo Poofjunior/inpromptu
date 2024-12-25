@@ -238,3 +238,24 @@ class ObjectMethodManager:
                 raise KeyError
         except KeyError:
             print(f"Error: {func_name} is not a callable method.")
+
+    def set_completion_options(self, method: str, parameter: str,
+                           options: list[str]):
+        """Specify a specific set of completion options for a method parameter.
+         Override existing options."""
+        self._check_method_completion_options(method, parameter)
+        self.method_defs[method]['parameters'][parameter]['options'] = options
+
+    def get_completion_options(self, method: str, parameter: str):
+        """Get completion options for a method's parameter."""
+        self._check_method_completion_options(method, parameter)
+        return self.method_defs[method]['parameters'][parameter]['options']
+
+    def _check_method_completion_options(self, method: str, parameter: str):
+        if method not in self.methods:
+            raise ValueError(f"{method} is not a valid method. Valid methods "
+                             f"are: {self.methods}.")
+        if parameter not in self.method_defs[method]['parameters']:
+            raise ValueError(f"{parameter} is not a parameter of method: "
+                f"{method}. Valid parameters are: {list(self.method_defs['method']['parameters'].keys())}.")
+

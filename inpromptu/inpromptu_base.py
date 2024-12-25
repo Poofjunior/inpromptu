@@ -85,8 +85,17 @@ class InpromptuBase(ABC):
         # To be implemented by child classes.
         pass
 
+    def set_completion_options(self, method: str, parameter: str,
+                               options: list[str]):
+        """Specify an explicit set of completion options for a method parameter.
+        Override existing options."""
+        self.omm.set_completion_options(method, parameter, options)
+
+    def get_completion_options(self, method: str, parameter: str):
+        return self.omm.get_completion_options(method, parameter)
+
     def _get_param_options(self, func_name, param_name, partial_val_text):
-        """Return list of valid parameter completions."""
+        """Return list of valid parameter completions for the given input text."""
         func_param_completions = []
         # See if this type has a specific list of completions.
         param_opts = self.omm.method_defs[func_name]['parameters'][param_name].get('options', [])

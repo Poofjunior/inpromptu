@@ -81,4 +81,9 @@ class TestDrive:
 
 if __name__ == "__main__":
     test_interface = Inpromptu(TestDrive(), methods_to_skip=['hotwire'])
+    #test_interface.set_completion_options('add_misc_item', 'stuff',
+    #                                      ['fridge', 'kelp', 'biscuits',
+    #                                       'the_one_ring', 'flux_capacitor'])
+    #print(test_interface.get_completion_options('add_misc_item', 'stuff'))
     test_interface.cmdloop()
+
