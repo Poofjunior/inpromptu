@@ -40,9 +40,9 @@ class Inpromptu(InpromptuBase):
     complete_key = 'tab'
     DELIM = ' '
 
-    def __init__(self, class_instance):
+    def __init__(self, class_instance, methods_to_skip = []):
         """Constructor."""
-        super().__init__(class_instance)
+        super().__init__(class_instance, methods_to_skip=methods_to_skip)
         readline.set_completer(self.complete)
         # Only split text to match on spaces. Default includes '{', '[', etc
         # which will be skipped by the results of text.

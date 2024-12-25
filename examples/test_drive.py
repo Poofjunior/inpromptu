@@ -73,7 +73,12 @@ class TestDrive:
         """The number of doors."""
         return self.num_doors
 
+    def hotwire(self):
+        """Hotwire the car. This should not appear in the interface if it was
+        placed in the methods-to-skip list."""
+        return
+
 
 if __name__ == "__main__":
-    test_interface = Inpromptu(TestDrive())
+    test_interface = Inpromptu(TestDrive(), methods_to_skip=['hotwire'])
     test_interface.cmdloop()

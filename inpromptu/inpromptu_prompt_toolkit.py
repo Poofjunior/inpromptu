@@ -11,9 +11,9 @@ from .inpromptu_base import container_split
 class Inpromptu(InpromptuBase):
     """Inspects an object and enables the invoking of any attribute's methods."""
 
-    def __init__(self, class_instance):
+    def __init__(self, class_instance, methods_to_skip = []):
         """Constructor."""
-        super().__init__(class_instance)
+        super().__init__(class_instance, methods_to_skip=methods_to_skip)
         self.completions = None # unused for now.
 
         self.session = PromptSession(self.prompt, completer=self)

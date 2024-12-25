@@ -68,9 +68,11 @@ class InpromptuBase(ABC):
     complete_key = 'tab'
     DELIM = ' '
 
-    def __init__(self, class_instance, methods_to_ignore = [], var_arg_subs = {}):
+    def __init__(self, class_instance, methods_to_skip = [], var_arg_subs = {}):
         """Constructor."""
-        self.omm = ObjectMethodManager(class_instance, methods_to_ignore, var_arg_subs)
+        self.omm = ObjectMethodManager(class_instance,
+                                       methods_to_skip=methods_to_skip,
+                                       var_arg_subs=var_arg_subs)
 
         # In-function completions for calling input() within a fn.
         # Note that this variable must be cleared when finished with it.
