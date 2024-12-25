@@ -4,15 +4,15 @@ A library for inferring interactive prompts from object instances.
 
 ## What Inpromptu Is
 Inpromptu is a near-direct replacement for Python's built-in [cmd.py](https://docs.python.org/3/library/cmd.html) utility.
-Rather than rewrite an extra class with special `do_` methods, Inpromptu will infer a prompt from the class directly.
+But instead of rewriting an extra class with special `do_` methods, Inpromptu will infer a prompt from the class directly.
 Inpromptu takes an object instance's callables and exposes them in a read-evaluate-print-loop that supports tab-completion.
 
 Born from a need to quickly interact with real-world devices and a frustration from the manual overhead of cmd.py, Inpromptu automatically generates an interactive prompt session by taking advantage of Python's type hinting and introspection capabilities.
 Features include
 
 * seamless automatic tab completion using a method's function signature
-  * supports: `bool`, `int`, `float`, `str`, anything that inherits from `Enum`
-* automatic help generation using a method's docstring
+  * supports: `bool`, `int`, `float`, `str`, anything that inherits from `Enum`, and `@property`-decorated methods (getter and setters)
+* automatic help generation directly from a method's docstring
 
 Inpromptu also provides a [prompt_toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/)-compatible completer so you can build more complicated prompts while getting all of inpromptu's introspection elements for free.
 
