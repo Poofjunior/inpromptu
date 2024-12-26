@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Class for Inspecting and managing the methods of an object instance."""
 
+import logging
 import sys
 from inspect import signature
 from enum import Enum
@@ -13,7 +14,6 @@ else:
 
 
 # TODO: figure out how to warn against multipledispatch
-# TODO: figure out clean way to trim out certain methods
 # TODO: have a way of exporting and importing structure.
 
 # Define StrEnums for generating the 'help' method.
@@ -33,7 +33,6 @@ def get_dict_attr(class_def, attr):
 
 class ObjectManager:
     """Inspects an object recursively and enables the invoking of any attribute's methods."""
-
 
     def __init__(self, class_instance):
         """Constructor."""
@@ -76,8 +75,7 @@ class ObjectMethodManager:
 
     def __init__(self, class_instance, methods_to_skip = [], var_arg_subs = {}):
         """collect functions."""
-
-        super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.class_instance = class_instance
 
         # Containers for methods and their signatures.
@@ -140,19 +138,16 @@ class ObjectMethodManager:
         return methods, property_getters
 
     def _get_method_defs(self):
-        """Build method definitions.
+        """Build method definitions. Skip methods that are missing type hints.
 
         :return: Dictionary of method names mapped to their definitions.
         """
-
         definitions = {}
-
         for method_name, method in self.methods.items():
             parameters = {}
             param_order = []
             sig = signature(method)
-
-            # FIXME: how does this code handle functions wrapped in decorators??
+            # FIXME: how does we handle functions wrapped in decorators??
             # Collapse to the function any wrapped functions.
             # This works only for function decorator wrappers using
             # functools.wraps to do the wrapping
@@ -161,6 +156,7 @@ class ObjectMethodManager:
 
             # Useful for parsing function signature.
             # https://docs.python.org/3/tutorial/controlflow.html#special-parameters
+            missing_hints = []
             for parameter_name, param in sig.parameters.items():
                 # Note: parameter_name does not include '*' or '**' prefix.
                 param_order.append(parameter_name)
@@ -171,11 +167,10 @@ class ObjectMethodManager:
                         param_types = list(get_args(param.annotation))
                     else:
                         param_types = [param.annotation]
-
                 # Enforce type hinting for all decorated methods.
                 if not param_types and parameter_name not in ['self', 'cls']:
-                    raise SyntaxError(f"Error: {method_name} must be type hinted. \
-                                        Cannot infer type for arg: {parameter_name}.")
+                    missing_hints.append(param)
+                    continue
                 # Check for parameter default value. Populate self & cls.
                 if param.default is not param.empty:
                     param_data["default"] = param.default
@@ -197,7 +192,12 @@ class ObjectMethodManager:
                 if param_types:
                     param_data['types'] = param_types
                 parameters[parameter_name] = param_data
-
+            # Skip methods that do not have all parameters type hinted.
+            if len(missing_hints):
+                self.log.warning(f"Method: '{method_name}' is missing type hints for "
+                                 f"the following parameters: {missing_hints}. "
+                                 "Omitting this method.")
+                continue
             # Create the top-level dictionary structure for this method.
             definitions[method_name] = \
             {
