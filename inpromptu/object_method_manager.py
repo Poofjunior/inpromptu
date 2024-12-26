@@ -12,14 +12,8 @@ if sys.version_info < (3,7):
 else:
     from typing import get_origin, get_args
 
-
 # TODO: figure out how to warn against multipledispatch
 # TODO: have a way of exporting and importing structure.
-
-# Define StrEnums for generating the 'help' method.
-if sys.version_info < (3,11):
-    class StrEnum(str, Enum):
-        pass
 
 # Workaround because getmembers does not get functions decorated with @property
 # https://stackoverflow.com/questions/3681272/can-i-get-a-reference-to-a-python-property
@@ -90,12 +84,10 @@ class ObjectMethodManager:
         self.methods['help'] = self.help
         self.callables = set({**self.methods, **self.property_getters}.keys())
         self.method_defs = self._get_method_defs()
-        # Provide help's arg completion options. Assign a custom type so that
-        # we don't need to use additional quotes when invoking literal_eval.
-        MethodName = StrEnum('MethodName', [(n, n) for n in self.callables])
-        self.method_defs['help']['parameters']['func_name']['types'] = [MethodName]
+        # Provide help's arg completion options.
+        self.method_defs['help']['parameters']['func_name']['types'] = [str]
         self.method_defs['help']['parameters']['func_name']['options'] = \
-            [str(a) for a in MethodName]
+            [str(a) for a in self.callables]
 
         #self._apply_variable_argument_substitutions(var_arg_subs)
 
@@ -212,9 +204,6 @@ class ObjectMethodManager:
         """Print a cli method's docstring."""
         # This fn gets appended to the list of callable methods such that it
         # be be invoked like any other command.
-
-        # func_name is annotated as a str type here but will be replaced with a
-        # StrEnum type so that we can complete it without quotes.
 
         if func_name is None:
             print(self.help.__doc__)
