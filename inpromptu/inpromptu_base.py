@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Base Class for inferring an introspective prompt."""
+import logging
 import pprint
 import traceback
 from abc import ABC, abstractmethod
 from ast import literal_eval
 from enum import Enum
+from inspect import signature
 from .object_method_manager import ObjectMethodManager
 from .errors import UserInputError
 
-
 # helper function for splitting user input containing nested {}, [], (), '', "".
-def container_split(s):
+def container_split(s: str, sep: str = " "):
     """split that splits on spaces while handling nested "", '', {}, [].
 
     returns a tuple (list, bool) of the split items and a bool indicating
@@ -47,7 +48,7 @@ def container_split(s):
                         #print(f"{c} -> end of outermost container")
                         chunk_start = i+1
                         continue
-        if c == " " and \
+        if c == sep and \
            (len(text_queue) == 0) and (len(container_queue) == 0):
             #print(f"{c} -> split here.")
             split_indices.append(i)
@@ -56,7 +57,7 @@ def container_split(s):
     #print(split_indices)
     split_indices = [0] + split_indices + [len(s)]
     # Return a tuple
-    return [s[x:y].lstrip() for x,y in zip(split_indices, split_indices[1:]) \
+    return [s[x:y].lstrip(sep) for x,y in zip(split_indices, split_indices[1:]) \
             if len(s[x:y].lstrip()) > 0] , \
             len(container_queue) == 0 and len(text_queue) == 0
 
@@ -70,6 +71,7 @@ class InpromptuBase(ABC):
 
     def __init__(self, class_instance, methods_to_skip = [], var_arg_subs = {}):
         """Constructor."""
+        self.log = logging.getLogger(self.__class__.__name__)
         self.omm = ObjectMethodManager(class_instance,
                                        methods_to_skip=methods_to_skip,
                                        var_arg_subs=var_arg_subs)
@@ -138,8 +140,31 @@ class InpromptuBase(ABC):
         # Error if we made it this far.
         raise UserInputError(
             f"For function {fn_name} parameter {arg_name}, value "
-            f"'{val_str}' could not be evaluated as any of the following " 
+            f"'{val_str}' could not be evaluated as any of the following "
             f"types: {param_types}.")
+
+    def parse_args_from_input(self, line, sep=" "):
+        """Parse line into args and kwargs with a custom delimiter.
+        Raise syntax error if the line is not parsable.
+        """
+        arg_blocks, completed = container_split(line, sep)
+        args = []
+        kwargs = {}
+
+        parsing_args = True
+        for arg_block in arg_blocks:
+            sub_block, _ = container_split(arg_block, '=')
+            if len(sub_block) == 1 and parsing_args:
+                args.append(sub_block[0])
+            elif len(sub_block) == 1 and not parsing_args:
+                raise SyntaxError("Args must be specified before kwargs.")
+            elif len(sub_block) == 2:
+                parsing_args = False
+                kwargs[sub_block[0]] = sub_block[1]
+            else:
+                raise SyntaxError(f"Unparsable input: '{line}'")
+        # completed will indicate if the last kwarg was fully input correctly.
+        return args, kwargs, completed
 
     def cmdloop(self, loop=True):
         """Repeatedly issue a prompt, accept input, and dispatch to action
@@ -150,85 +175,36 @@ class InpromptuBase(ABC):
                 line = self.input()
                 if line.lstrip() == "":
                     continue
-                ## Extract fn and args.
-                fn_name, *arg_blocks = container_split(line)[0]
-                kwargs = {}
-
-                no_more_args = False # indicates end of positional args in fn signature
-
-                # Check if fn even exists.
-                if fn_name not in self.omm.callables:
-                    raise UserInputError(f"Error: {fn_name} is not a valid command.")
-
-                # Shortcut for @property getters which have no parameters and
-                # whose function pointers are stored elsewhere to prevent name
-                # name clashing with their setters.
-                if len(arg_blocks) == 0 and fn_name in self.omm.property_getters:
-                    return_val = None
-                    try:
-                        this = self.omm.class_instance
-                        return_val = self.omm.property_getters[fn_name](this)
-                    except Exception as e:
-                        print(f"function {fn_name} raised an excecption while being executed.")
-                    # Reset any completions set during this function.
-                    finally:
-                        self.completions = None
-                    if return_val is not None:
-                        pprint.pprint(return_val)
-                    if not loop:
-                        return
-                    else:
-                        continue
-
-                param_count = len(self.omm.method_defs[fn_name]['param_order'])
-                param_order = self.omm.method_defs[fn_name]['param_order']
-                # Remove self or cls from param count and arg list.
-                if self.omm.method_defs[fn_name]['param_order'][0] in ['self', 'cls']:
-                    param_count -= 1
-                    param_order = param_order[1:]
-                # Ensure required arg count is met.
-                if len(arg_blocks) > param_count:
-                    raise UserInputError("Error: too many positional arguments.")
-
-                # Collect args and kwargs, enforcing args before kwargs.
-                for arg_index, arg_block in enumerate(arg_blocks):
-                    # Assume keyword arg is specified by key/value pair split by '='
-                    try:
-                        arg_name, val_str = arg_block.split("=")
-                        no_more_args = True
-                    # Otherwise: positional arg. Enforce parameter order.
-                    except (ValueError, AttributeError):
-                        # Enforce that positional args come before kwargs.
-                        if no_more_args:
-                            raise UserInputError(
-                                "Error: all positional arguments must be "
-                                 "specified before any keyword arguments.")
-                        arg_name = param_order[arg_index]
-                        val_str = arg_block
-                    val = self._fn_param_from_string(fn_name, arg_name, val_str)
-                    kwargs[arg_name] = val
-
-                # Populate missing params with their defaults.
-                # Raise error if are required param is missing.
-                kwarg_settings = self.omm.method_defs[fn_name]['parameters']
-                missing_kwargs = []
-                for key, val in kwarg_settings.items():
-                    if key not in kwargs:
-                        if 'default' in kwarg_settings[key]:
-                            kwargs[key] = kwarg_settings[key]['default']
-                        else:
-                            missing_kwargs.append(key)
-                if missing_kwargs:
-                    raise UserInputError(
-                        f"Error: the following required parameters are "
-                        f"missing: {missing_kwargs}")
-
-                # Invoke the fn.
+                ## Extract fn and arg/kwarg blocks.
+                try:
+                    fn_name, args_and_kwargs = line.split(maxsplit=1)
+                except ValueError:
+                    fn_name = line.split()[0]
+                    args_and_kwargs = ""
+                args, kwargs, completed = self.parse_args_from_input(args_and_kwargs)
+                self.log.warning(f"parsed args: {args}, kwargs: {kwargs}")
+                # Extract function.
+                # Property getter shortcut.
+                if not args and not kwargs and fn_name in self.omm.property_getters:
+                    func = self.omm.property_getters[fn_name]
+                else:
+                    func = self.omm.methods[fn_name]
+                params = list(signature(func).parameters.keys())
+                # Convert raw input to input appropriate for the signature.
+                # FIXME: this is naive and doesn't parse Enums.
+                args = [literal_eval(r) for r in args]
+                kwargs = {k: literal_eval(v) for k, v in kwargs.items()}
+                # Prepend 'self' or 'cls'.
+                if params:
+                    if params[0] == 'self':
+                        args = [self.omm.class_instance] + args
+                    if params[0] == 'cls':
+                        args = [self.omm.class_instance.__class__] + args
+                # Invoke the function
                 return_val = None
                 try:
-                    # Maybe keep pprint with a verbose option?
-                    #pprint.pprint(kwargs)
-                    return_val = self.omm.methods[fn_name](**kwargs)
+                    self.log.warning(f"Calling fn {fn_name} with args: {args}, kwargs: {kwargs}")
+                    return_val = func(*args, **kwargs)
                 except Exception as e:
                     print(f"{fn_name} raised an exception while being executed.")
                     print(traceback.format_exc())
@@ -236,14 +212,12 @@ class InpromptuBase(ABC):
                 finally:
                     self.completions = None
                 if return_val is not None:
-                    pprint.pprint(return_val)
+                    print(return_val)
             except (EOFError, ValueError, UserInputError) as e:
-                print(e)
-                line = 'EOF'
+                print(traceback.format_exc())
             except KeyboardInterrupt:
                 print()
                 return
             if not loop:
                 return
-
 
