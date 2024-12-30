@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Base Class for inferring an introspective prompt."""
+import inspect
 import logging
 import pprint
 import traceback
+import typing
 from abc import ABC, abstractmethod
 from ast import literal_eval
 from enum import Enum
-from inspect import signature
+from inspect import signature, Parameter
 from inspect import _ParameterKind as ParamKind
 from .object_method_manager import ObjectMethodManager
 from .errors import UserInputError
 
+
+# FIXME: should container_split('key=', '=') return (['key=', ''], True) or (['key='], False) ?
 # helper function for splitting user input containing nested {}, [], (), '', "".
 def container_split(s: str, sep: str = " "):
     """split that splits on spaces while handling nested "", '', {}, [].
@@ -70,7 +74,7 @@ class InpromptuBase(ABC):
     complete_key = 'tab'
     DELIM = ' '
 
-    def __init__(self, class_instance, methods_to_skip = [], var_arg_subs = {}):
+    def __init__(self, class_instance, methods_to_skip=[], var_arg_subs={}):
         """Constructor."""
         self.log = logging.getLogger(self.__class__.__name__)
         self.omm = ObjectMethodManager(class_instance,
@@ -107,43 +111,6 @@ class InpromptuBase(ABC):
                 func_param_completions.append(param)
         return func_param_completions
 
-    def _fn_param_from_string(self, fn_name, arg_name, val_str):
-        """Convert param input from string to value appropriate for the signature."""
-        if not val_str:
-            raise ValueError(f"val_str cannot be empty.")
-        param_types = self.omm.method_defs[fn_name]['parameters'][arg_name]['types']
-        # Iterate through types. Try to convert input to enums first.
-        for param_type in param_types:
-            # Enum access by name (not by value) requires brackets.
-            if issubclass(param_type, Enum):
-                # Try to parse the input as an enum.
-                try:
-                    enum_class, name = val_str.split(".")
-                    if enum_class == param_type.__name__:
-                        return param_type[name]
-                except (ValueError, KeyError):
-                    pass
-        # Try to convert to a valid type and return it.
-        # Use literal_eval first to avoid unwanted conversions.
-        # Handle bools, ints, floats, None, and strings enclosed in quotes.
-        try:
-            value = literal_eval(val_str)
-            if type(value) in param_types:
-                return value
-        except ValueError:
-            pass
-        # Call each constructor manually.
-        for param_type in param_types:
-            try:
-                return param_type(val_str)
-            except (TypeError, ValueError):
-                pass
-        # Error if we made it this far.
-        raise UserInputError(
-            f"For function {fn_name} parameter {arg_name}, value "
-            f"'{val_str}' could not be evaluated as any of the following "
-            f"types: {param_types}.")
-
     def get_remaining_params(self, func, arg_blocks, skip_self_or_cls = True):
         """For a given function and given list of arguments, return the
         remaining parameters.
@@ -167,7 +134,6 @@ class InpromptuBase(ABC):
         for index, arg_block in enumerate(arg_blocks):
             sub_block, finished = container_split(arg_block, '=')
             last_block = (index == (len(arg_blocks) - 1))
-            #input_is_arg = len(sub_block) == 1
             input_is_kwarg = len(sub_block) == 2
             parsing_kwargs = input_is_kwarg or parsing_kwargs
             next_param = remaining_params[0]
@@ -198,28 +164,129 @@ class InpromptuBase(ABC):
                 raise SyntaxError(f"Too many input arguments for the function: {func}.")
         return remaining_params
 
-    def parse_args_from_input(self, line, sep=" "):
-        """Parse line into args and kwargs with a custom delimiter.
-        Raise syntax error if the line is not parsable.
+    @staticmethod
+    def get_types(param: Parameter):
+        """Return a list of valid Python types for a given parameter.
         """
-        arg_blocks, completed = container_split(line, sep)
+        if param.annotation is Parameter.empty:
+            return [typing.Any]
+        if typing.get_origin(param.annotation) is typing.Union:
+            return list(typing.get_args(param.annotation))
+        return [param.annotation]
+
+    @staticmethod
+    def typed_eval(val_str, types):
+        """Evaluate string to an object representation according to type hint.
+        For Union types, types are evaluated in order.
+        """
+        # TODO: long-term we should be able to handle recursive type hinting.
+        # Use literal_eval first to avoid unwanted literal conversions
+        # from naively calling a literal constructor on the string representation.
+        try:
+            value = literal_eval(val_str)
+        except ValueError:  # Enums cannot be evaluated this way.
+            value = val_str
+        for obj_type in types:
+            # Enum access by name (not by value) requires brackets.
+            if issubclass(obj_type, Enum):
+                # Try to parse the input as an enum.
+                try:
+                    enum_class, name = val_str.split(".")
+                    if enum_class == obj_type.__name__:
+                        return obj_type[name]  # Use dict-like access.
+                except (ValueError, KeyError):
+                    pass
+            try:
+                return obj_type(value)  # Call constructor.
+            except ValueError:  # This constructor didn't work. Move on.
+                pass
+        raise ValueError(f"Cannot convert {val_str} to any of the following "
+                         f"types: {types}")
+
+    def parse_args(self, func, arg_blocks, skip_self_or_cls: bool = True):
+        """For a given function and list of parameter inputs, parse out:
+        entered args, kwargs, remaining parameters, and
+
+        Raise SyntaxError if input params are invalid.
+        """
         args = []
         kwargs = {}
+        positional_params = [ParamKind.POSITIONAL_ONLY, ParamKind.POSITIONAL_OR_KEYWORD]
+        keyword_params = [ParamKind.POSITIONAL_OR_KEYWORD, ParamKind.KEYWORD_ONLY]
+        sig = signature(func)
+        remaining_params = list(sig.parameters.values())
 
-        parsing_args = True
-        for arg_block in arg_blocks:
-            sub_block, _ = container_split(arg_block, '=')
-            if len(sub_block) == 1 and parsing_args:
-                args.append(sub_block[0])
-            elif len(sub_block) == 1 and not parsing_args:
-                raise SyntaxError("Args must be specified before kwargs.")
-            elif len(sub_block) == 2:
-                parsing_args = False
-                kwargs[sub_block[0]] = sub_block[1]
-            else:
-                raise SyntaxError(f"Unparsable input: '{line}'")
-        # completed will indicate if the last kwarg was fully input correctly.
-        return args, kwargs, completed
+        if skip_self_or_cls and remaining_params \
+                and remaining_params[0].name in ['self', 'cls']:
+            remaining_params.pop(0)
+        # Handle bail-early case: no params and no input.
+        if not len(remaining_params) and not arg_blocks:
+            return args, kwargs, remaining_params
+        # Handle remaining cases.
+        # Match param to input (arg or kwarg).
+        parsing_kwargs = False  # Used to enforce args before kwargs
+        for index, arg_block in enumerate(arg_blocks):
+            sub_block, finished = container_split(arg_block, '=')
+            last_block = (index == (len(arg_blocks) - 1))
+            input_is_kwarg = len(sub_block) == 2
+            parsing_kwargs = input_is_kwarg or parsing_kwargs
+            next_param = remaining_params[0]
+            param_types = self.get_types(next_param)
+            try:
+                # arg cases
+                if not parsing_kwargs:
+                    arg = sub_block[0]
+                    if next_param.kind in positional_params:
+                        args.append(self.typed_eval(arg, param_types))
+                        remaining_params.pop(0)
+                        continue
+                    if next_param.kind == ParamKind.VAR_POSITIONAL:
+                        args.append(self.typed_eval(arg, param_types))
+                        continue
+                # kwarg cases.
+                # Remove any *args present as soon as we start seeing kwargs.
+                if parsing_kwargs and next_param.kind == ParamKind.VAR_POSITIONAL:
+                    remaining_params.pop(0)
+                    next_param = remaining_params[0]
+                # Ensure final kwarg was fully entered. i.e: something after '='
+                if last_block and (not finished or (sub_block[1] == "")):
+                    continue
+                kwarg_name, kwarg_val = sub_block
+                if next_param.kind in keyword_params:
+                    kwargs[kwarg_name] = self.typed_eval(kwarg_val, param_types)
+                    remaining_params.pop(0)
+                    continue
+                if next_param.kind == ParamKind.VAR_KEYWORD:
+                    kwargs[kwarg_name] = self.typed_eval(kwarg_val, param_types)
+                    continue
+                raise SyntaxError(f"Invalid parameter input: '{arg_block}' "
+                                  f"for parameter: {next_param.name}.")
+            except IndexError:
+                raise SyntaxError(f"Too many input arguments for the function: {func}.")
+        return args, kwargs, remaining_params
+
+    #def parse_args_from_input(self, line, sep=" "):
+    #    """Parse line into args and kwargs with a custom delimiter.
+    #    Raise syntax error if the line is not parsable.
+    #    """
+    #    arg_blocks, completed = container_split(line, sep)
+    #    args = []
+    #    kwargs = {}
+
+    #    parsing_args = True
+    #    for arg_block in arg_blocks:
+    #        sub_block, _ = container_split(arg_block, '=')
+    #        if len(sub_block) == 1 and parsing_args:
+    #            args.append(sub_block[0])
+    #        elif len(sub_block) == 1 and not parsing_args:
+    #            raise SyntaxError("Args must be specified before kwargs.")
+    #        elif len(sub_block) == 2:
+    #            parsing_args = False
+    #            kwargs[sub_block[0]] = sub_block[1]
+    #        else:
+    #            raise SyntaxError(f"Unparsable input: '{line}'")
+    #    # completed will indicate if the last kwarg was fully input correctly.
+    #    return args, kwargs, completed
 
     def cmdloop(self, loop=True):
         """Repeatedly issue a prompt, accept input, and dispatch to action
@@ -230,25 +297,22 @@ class InpromptuBase(ABC):
                 line = self.input()
                 if line.lstrip() == "":
                     continue
-                ## Extract fn and arg/kwarg blocks.
+                # Extract fn and arg/kwarg blocks.
                 try:
-                    fn_name, args_and_kwargs = line.split(maxsplit=1)
+                    fn_name, args_and_kwargs_str = line.split(maxsplit=1)
                 except ValueError:
                     fn_name = line.split()[0]
-                    args_and_kwargs = ""
-                args, kwargs, completed = self.parse_args_from_input(args_and_kwargs)
-                self.log.info(f"parsed args: {args}, kwargs: {kwargs}")
+                    args_and_kwargs_str = ""
                 # Extract function.
                 # Property getter shortcut.
-                if not args and not kwargs and fn_name in self.omm.property_getters:
+                if not args_and_kwargs_str.strip() and fn_name in self.omm.property_getters:
                     func = self.omm.property_getters[fn_name]
                 else:
                     func = self.omm.methods[fn_name]
+                args_and_kwargs, _ = container_split(args_and_kwargs_str)
                 params = list(signature(func).parameters.keys())
                 # Convert raw input to input appropriate for the signature.
-                # FIXME: this is naive and doesn't parse Enums.
-                args = [literal_eval(r) for r in args]
-                kwargs = {k: literal_eval(v) for k, v in kwargs.items()}
+                args, kwargs, _ = self.parse_args(func, args_and_kwargs)
                 # Prepend 'self' or 'cls'.
                 if params:
                     if params[0] == 'self':
@@ -258,10 +322,11 @@ class InpromptuBase(ABC):
                 # Invoke the function
                 return_val = None
                 try:
-                    self.log.warning(f"Calling fn {fn_name} with args: {args}, kwargs: {kwargs}")
+                    self.log.debug(f"Calling fn {fn_name} with args: {args}, "
+                                   f"kwargs: {kwargs}")
                     return_val = func(*args, **kwargs)
                 except Exception as e:
-                    print(f"{fn_name} raised an exception while being executed.")
+                    self.log.error(f"{fn_name} raised an exception while being executed.")
                     print(traceback.format_exc())
                 # Reset any completions set during this function.
                 finally:
