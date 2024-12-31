@@ -170,18 +170,17 @@ class Inpromptu(InpromptuBase):
         # Don't search the last element if it is not fully entered.
         param_entries_to_search = param_entries[:-1] if (line[-1] != self.__class__.DELIM) else param_entries
         param_objects = self.get_remaining_params(func, param_entries_to_search)
-        self.func_params = [p.name for p in param_objects]
 
         # Then generate completion list from remaining possible params.
         func_param_completions = []
-        for param_order_index, param_name in enumerate(self.func_params):
-            completion = f"{param_name}="
+        for param_order_index, param in enumerate(param_objects):
+            completion = f"{param.name}="
             # No space case: <kwarg_name>=<value> is partially typed or fully typed but missing a space
             if line[-1] is not self.__class__.DELIM and \
                 param_entries[-1].startswith(completion):
                 partial_val_text = param_entries[-1].split('=')[-1]
                 func_param_completions = self._get_param_options(self.func_name,
-                                                                 param_name,
+                                                                 param.name,
                                                                  partial_val_text)
                 break
             # Bail early if the user entered unfinished text that can't be
@@ -197,6 +196,10 @@ class Inpromptu(InpromptuBase):
             # regular check
             if completion.startswith(text) and not skip:
                 func_param_completions.append(completion)
+            # Exit early: provide required args one-at-a-time so we complete
+            # them in order.
+            if param.default == param.empty:
+                break
 
         # Recall: this fn is called multiple times with increasing values of
         # of state until None (i.e no more completions) is returned.
