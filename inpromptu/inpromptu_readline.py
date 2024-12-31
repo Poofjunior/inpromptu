@@ -161,7 +161,6 @@ class Inpromptu(InpromptuBase):
         # Complete the fn params.
         self.func_name = cmd_with_args[0]
         param_entries = cmd_with_args[1:]
-
         # Check to make sure func name has parameters and was typed correctly.
         if self.func_name not in self.omm.method_defs:
             return None

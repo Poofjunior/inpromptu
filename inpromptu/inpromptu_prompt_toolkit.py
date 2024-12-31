@@ -54,42 +54,18 @@ class Inpromptu(InpromptuBase):
         # Complete the fn params (i.e: args in order then kwargs by name)
         else:
             self.func_name = cmd_with_args[0]
+            param_entries = cmd_with_args[1:]
             # Check to make sure func name has parameters and was typed correctly.
             if self.func_name not in self.omm.method_defs:
                 return None
-            self.func_params = self.omm.method_defs[self.func_name]['param_order']
-            if self.func_params[0] in ['self', 'cls']:
-                self.func_params = self.func_params[1:]
 
-            # First filter out already-entered positional arguments.
-            # Abort upon finding first keyword argument.
-            first_kwarg_found = False
-            first_kwarg_index = 0
-            param_entries = cmd_with_args[1:]
-            for entry_index, param_entry in enumerate(param_entries):
-                kwarg = None
-                # Check if text entry is a fully-entered kwarg.
-                for param_name in self.func_params:
-                    # kwargs are indentified by the string: "kwarg_name=kwarg_val"
-                    completion = f"{param_name}="
-                    #print(f"param_entry: {param_entry} | completion: {complection}")
-                    if param_entry.startswith(completion):
-                        kwarg = param_name
-                        if not first_kwarg_found:
-                            first_kwarg_found = True
-                            first_kwarg_index = entry_index
-                        break
-                if first_kwarg_found:
-                    break
-                # Don't remove the last element if it is not fully entered.
-                if param_entry == param_entries[-1] and line[-1] != self.__class__.DELIM:
-                    break
-                first_kwarg_index += 1
-
-            self.func_params = self.func_params[first_kwarg_index:]
-
-            #print(f"found kwarg: {first_kwarg_found} | at index: {first kwarg_index}")
-            #print(f"unfiltered params: {self.func_params}")
+            # Get function params that have not been entered
+            func = self.omm.methods[self.func_name]
+            # Don't search the last element if it's not fully entered.
+            param_entries_to_search = param_entries[:-1] \
+                if (line[-1] != self.__class__.DELIM) else param_entries
+            param_objects = self.get_remaining_params(func, param_entries_to_search)
+            self.func_params = [p.name for p in param_objects]
 
             # Now generate completion list for params not yet entered.
             for param_name in self.func_params:
