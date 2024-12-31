@@ -50,11 +50,14 @@ class TestDrive:
         if gallons:
             self.gallons += gallons
 
-    def add_passengers(self, passenger_list: list, buckle_them: bool = True):
+    def add_passengers_from_list(self, passenger_list: list, buckle_them: bool = True):
         self.passengers = passenger_list
         for passenger in self.passengers:
             buckle_str = "" if buckle_them else "NOT "
             print(f"adding {passenger} and {buckle_str}buckling them.")
+
+    def add_passengers(self, *passengers: str):
+        self.add_passengers_from_list(passengers)
 
     def add_gear(self, gear: Gear):
         print(f"adding {gear}")

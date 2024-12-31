@@ -161,53 +161,26 @@ class Inpromptu(InpromptuBase):
         # Complete the fn params.
         self.func_name = cmd_with_args[0]
         param_entries = cmd_with_args[1:]
-
         # Check to make sure func name has parameters and was typed correctly.
         if self.func_name not in self.omm.method_defs:
             return None
-        # remaining params to complete stored in self.func_params.
-        self.func_params = self.omm.method_defs[self.func_name]['param_order']
-        if self.func_params[0] in {'self', 'cls'}:
-            self.func_params = self.func_params[1:]
 
-        # First filter out already-entered positional arguments.
-        # Abort upon first keyword.
-        first_kwarg_found = False
-        first_kwarg_index = 0
-        param_entries = cmd_with_args[1:] # everything typed after the fn name.
-        for entry_index, text_block in enumerate(param_entries):
-            kwarg = None
-            # Check if text entry is a fully-entered kwarg.
-            for param_order_index, param_name in enumerate(self.func_params):
-                completion = f"{param_name}="
-                #print(f"text block: {text_block} | completion {completion}")
-                if text_block.startswith(completion):
-                    kwarg = param_name
-                    if not first_kwarg_found:
-                        first_kwarg_found = True
-                        first_kwarg_index = entry_index
-                    break
-            if first_kwarg_found:
-                break
-            # Don't remove the last element if it is not fully entered.
-            if text_block == param_entries[-1] and line[-1] is not self.__class__.DELIM:
-                break
-            first_kwarg_index += 1
-        self.func_params = self.func_params[first_kwarg_index:]
-
-        #print(f"found kwarg: {first_kwarg_found} | at index {first_kwarg_index}")
-        #print(f"unfiltered params: {self.func_params}")
+        # Get function params that have not been entered.
+        func = self.omm.methods[self.func_name]
+        # Don't search the last element if it is not fully entered.
+        param_entries_to_search = param_entries[:-1] if (line[-1] != self.__class__.DELIM) else param_entries
+        param_objects = self.get_remaining_params(func, param_entries_to_search)
 
         # Then generate completion list from remaining possible params.
         func_param_completions = []
-        for param_order_index, param_name in enumerate(self.func_params):
-            completion = f"{param_name}="
+        for param_order_index, param in enumerate(param_objects):
+            completion = f"{param.name}="
             # No space case: <kwarg_name>=<value> is partially typed or fully typed but missing a space
             if line[-1] is not self.__class__.DELIM and \
                 param_entries[-1].startswith(completion):
                 partial_val_text = param_entries[-1].split('=')[-1]
                 func_param_completions = self._get_param_options(self.func_name,
-                                                                 param_name,
+                                                                 param.name,
                                                                  partial_val_text)
                 break
             # Bail early if the user entered unfinished text that can't be
@@ -223,7 +196,13 @@ class Inpromptu(InpromptuBase):
             # regular check
             if completion.startswith(text) and not skip:
                 func_param_completions.append(completion)
+            # Exit early: provide required args one-at-a-time so we complete
+            # them in order.
+            if param.default == param.empty:
+                break
 
+        # Recall: this fn is called multiple times with increasing values of
+        # of state until None (i.e no more completions) is returned.
         try:
             return func_param_completions[state]
         except IndexError:

@@ -12,6 +12,7 @@ Features include
 * seamless automatic tab completion using a method's function signature
   * supports: `bool`, `int`, `float`, `str`, anything that inherits from `Enum`, and `@property`-decorated methods (getter and setters)
 * automatic help generation directly from a method's docstring
+* variable positional (`*args`) and keyword-only (`**kwds`) input
 
 Inpromptu also provides a [prompt_toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/)-compatible completer so you can build more complicated prompts while getting all of inpromptu's introspection elements for free.
 
@@ -141,27 +142,27 @@ biscuits        flux_capacitor  fridge          kelp            the_one_ring
 ```
 
 ## FAQs
-### Why not just use the python shell?
-You could! Inpromptu is intented to be a bit more minimalistic and user-friendly.
-Inpromptu can be used as a minimalistic UI on its own.
+### Why not just use the Python shell?
+Inpromptu is intented to be a minimalistic UI on its own.
+Tab-completion and inferring of arguments by type (esp Enums) makes it easier to understand how to invoke the function that strictly by using the shell.
 
 ### Is there any way I can tease out the core elements to build my own interface?
 Yes. In fact, core elements of Inpromptu can be hooked directly into [Python Prompt Toolkit](https://python-prompt-toolkit.readthedocs.io/en/master/) to provide the same kind of object-based completions with richer prompt features.
 See the examples folder for some inspiration.
 
 ### What's not implemented?
-* functions that use `*args` and `**kwds` as input
 * The [@overload](https://docs.python.org/3/library/typing.html#typing.overload) operator.
 * functions wrapped in decorators: like `@cache`, `@cached_property` from functools
   * Note: some cases may work already.
 * Recording a series of commands.
 
 ### What's Going to be Implemented Next?
-* `*args` and `**kwds`
 * Explicit handling of functions wrapped in decorators.
 * Overloading completions for specified functions
 
+## Similar Projects
+* [Kickoff](https://python-kickoff.readthedocs.io/en/latest/#)
+
 ## About the Author
 Inpromptu was written by someone who used cmd.py one-too-many times.
-There had to be a better solution.
-And Inpromptu is one of many.
+
