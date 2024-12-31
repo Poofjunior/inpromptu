@@ -7,6 +7,7 @@ import traceback
 import typing
 from abc import ABC, abstractmethod
 from ast import literal_eval
+from collections import OrderedDict
 from enum import Enum
 from inspect import signature, Parameter
 from inspect import _ParameterKind as ParamKind
@@ -111,58 +112,58 @@ class InpromptuBase(ABC):
                 func_param_completions.append(param)
         return func_param_completions
 
-    def get_remaining_params(self, func, arg_blocks, skip_self_or_cls = True):
-        """For a given function and given list of arguments, return the
-        remaining parameters.
+    #def get_remaining_params(self, func, arg_blocks, skip_self_or_cls = True):
+    #    """For a given function and given list of arguments, return the
+    #    remaining parameters.
 
-        Raise SyntaxError if input params are invalid.
-        """
-        positional_params = [ParamKind.POSITIONAL_ONLY, ParamKind.POSITIONAL_OR_KEYWORD]
-        keyword_params = [ParamKind.POSITIONAL_OR_KEYWORD, ParamKind.KEYWORD_ONLY]
-        sig = signature(func)
-        remaining_params = list(sig.parameters.values())
+    #    Raise SyntaxError if input params are invalid.
+    #    """
+    #    positional_params = [ParamKind.POSITIONAL_ONLY, ParamKind.POSITIONAL_OR_KEYWORD]
+    #    keyword_params = [ParamKind.POSITIONAL_OR_KEYWORD, ParamKind.KEYWORD_ONLY]
+    #    sig = signature(func)
+    #    remaining_params = list(sig.parameters.values())
 
-        if skip_self_or_cls and remaining_params \
-            and remaining_params[0].name in ['self', 'cls']:
-            remaining_params.pop(0)
-        # Handle bail-early case.
-        if not len(remaining_params) and not arg_blocks:
-            return []
-        # Handle remaining cases.
-        # Match param to input (arg or kwarg).
-        parsing_kwargs = False  # Used to enforce args before kwargs
-        for index, arg_block in enumerate(arg_blocks):
-            sub_block, finished = container_split(arg_block, '=')
-            last_block = (index == (len(arg_blocks) - 1))
-            input_is_kwarg = len(sub_block) == 2
-            parsing_kwargs = input_is_kwarg or parsing_kwargs
-            next_param = remaining_params[0]
-            try:
-                # arg cases
-                if not parsing_kwargs:
-                    if next_param.kind in positional_params:
-                        remaining_params.pop(0)
-                        continue
-                    if next_param.kind == ParamKind.VAR_POSITIONAL:
-                        continue
-                # kwarg cases.
-                # Remove any *args present as soon as we start seeing kwargs.
-                if parsing_kwargs and next_param.kind == ParamKind.VAR_POSITIONAL:
-                    remaining_params.pop(0)
-                    next_param = remaining_params[0]
-                # Ensure final kwarg was fully entered. i.e: something after '='
-                if last_block and (not finished or (sub_block[1] == "")):
-                    continue
-                if next_param.kind in keyword_params:
-                    remaining_params.pop(0)
-                    continue
-                if next_param.kind == ParamKind.VAR_KEYWORD:
-                    continue
-                raise SyntaxError(f"Invalid parameter input: '{arg_block}' "
-                                  f"for parameter: {next_param.name}.")
-            except IndexError:
-                raise SyntaxError(f"Too many input arguments for the function: {func}.")
-        return remaining_params
+    #    if skip_self_or_cls and remaining_params \
+    #        and remaining_params[0].name in ['self', 'cls']:
+    #        remaining_params.pop(0)
+    #    # Handle bail-early case.
+    #    if not len(remaining_params) and not arg_blocks:
+    #        return []
+    #    # Handle remaining cases.
+    #    # Match param to input (arg or kwarg).
+    #    parsing_kwargs = False  # Used to enforce args before kwargs
+    #    for index, arg_block in enumerate(arg_blocks):
+    #        sub_block, finished = container_split(arg_block, '=')
+    #        last_block = (index == (len(arg_blocks) - 1))
+    #        input_is_kwarg = len(sub_block) == 2
+    #        parsing_kwargs = input_is_kwarg or parsing_kwargs
+    #        next_param = remaining_params[0]
+    #        try:
+    #            # arg cases
+    #            if not parsing_kwargs:
+    #                if next_param.kind in positional_params:
+    #                    remaining_params.pop(0)
+    #                    continue
+    #                if next_param.kind == ParamKind.VAR_POSITIONAL:
+    #                    continue
+    #            # kwarg cases.
+    #            # Remove any *args present as soon as we start seeing kwargs.
+    #            if parsing_kwargs and next_param.kind == ParamKind.VAR_POSITIONAL:
+    #                remaining_params.pop(0)
+    #                next_param = remaining_params[0]
+    #            # Ensure final kwarg was fully entered. i.e: something after '='
+    #            if last_block and (not finished or (sub_block[1] == "")):
+    #                continue
+    #            if next_param.kind in keyword_params:
+    #                remaining_params.pop(0)
+    #                continue
+    #            if next_param.kind == ParamKind.VAR_KEYWORD:
+    #                continue
+    #            raise SyntaxError(f"Invalid parameter input: '{arg_block}' "
+    #                              f"for parameter: {next_param.name}.")
+    #        except IndexError:
+    #            raise SyntaxError(f"Too many input arguments for the function: {func}.")
+    #    return remaining_params
 
     @staticmethod
     def get_types(param: Parameter):
@@ -203,7 +204,8 @@ class InpromptuBase(ABC):
         raise ValueError(f"Cannot convert {val_str} to any of the following "
                          f"types: {types}")
 
-    def parse_args(self, func, arg_blocks, skip_self_or_cls: bool = True):
+    def parse_args(self, func, arg_blocks, skip_self_or_cls: bool = True,
+                   remaining_params_only: bool = False):
         """For a given function and list of parameter inputs, parse out:
         entered args, kwargs, remaining parameters, and
 
@@ -214,14 +216,18 @@ class InpromptuBase(ABC):
         positional_params = [ParamKind.POSITIONAL_ONLY, ParamKind.POSITIONAL_OR_KEYWORD]
         keyword_params = [ParamKind.POSITIONAL_OR_KEYWORD, ParamKind.KEYWORD_ONLY]
         sig = signature(func)
-        remaining_params = list(sig.parameters.values())
+        remaining_params = OrderedDict(sig.parameters)
+        # Find **kwargs parameter if it exists.
+        varkwarg_search = [p for p in remaining_params.values() if p.kind == ParamKind.VAR_KEYWORD]
+        has_varkwargs = len(varkwarg_search) > 0
+        varkwarg_param = varkwarg_search[0] if len(varkwarg_search) else None
 
         if skip_self_or_cls and remaining_params \
-                and remaining_params[0].name in ['self', 'cls']:
-            remaining_params.pop(0)
+                and list(remaining_params.values())[0].name in ['self', 'cls']:
+            remaining_params.popitem(last=False)
         # Handle bail-early case: no params and no input.
         if not len(remaining_params) and not arg_blocks:
-            return args, kwargs, remaining_params
+            return args, kwargs, list(remaining_params.values())
         # Handle remaining cases.
         # Match param to input (arg or kwarg).
         parsing_kwargs = False  # Used to enforce args before kwargs
@@ -230,63 +236,58 @@ class InpromptuBase(ABC):
             last_block = (index == (len(arg_blocks) - 1))
             input_is_kwarg = len(sub_block) == 2
             parsing_kwargs = input_is_kwarg or parsing_kwargs
-            next_param = remaining_params[0]
+            next_param = list(remaining_params.values())[0]
             param_types = self.get_types(next_param)
+            if input_is_kwarg and (next_param.kind == ParamKind.POSITIONAL_ONLY):
+                raise SyntaxError(f"Next parameter {next_param.name} is position-only.")
             try:
                 # arg cases
                 if not parsing_kwargs:
                     arg = sub_block[0]
                     if next_param.kind in positional_params:
+                        remaining_params.popitem(last=False)
+                        if remaining_params_only: # skip populating args.
+                            continue
                         args.append(self.typed_eval(arg, param_types))
-                        remaining_params.pop(0)
                         continue
                     if next_param.kind == ParamKind.VAR_POSITIONAL:
+                        if remaining_params_only: # skip populating args.
+                            continue
                         args.append(self.typed_eval(arg, param_types))
                         continue
                 # kwarg cases.
                 # Remove any *args present as soon as we start seeing kwargs.
                 if parsing_kwargs and next_param.kind == ParamKind.VAR_POSITIONAL:
-                    remaining_params.pop(0)
-                    next_param = remaining_params[0]
+                    remaining_params.popitem(last=False)
+                    next_param = list(remaining_params.values())[0]
+                    param_types = self.get_types(next_param)
                 # Ensure final kwarg was fully entered. i.e: something after '='
                 if last_block and (not finished or (sub_block[1] == "")):
                     continue
                 kwarg_name, kwarg_val = sub_block
-                if next_param.kind in keyword_params:
+                # kwargs can be input in any order.
+                if kwarg_name in remaining_params:
+                    del remaining_params[kwarg_name]
+                    if remaining_params_only: # skip populating args.
+                        continue
                     kwargs[kwarg_name] = self.typed_eval(kwarg_val, param_types)
-                    remaining_params.pop(0)
                     continue
-                if next_param.kind == ParamKind.VAR_KEYWORD:
-                    kwargs[kwarg_name] = self.typed_eval(kwarg_val, param_types)
+                # if **kwargs is present, we don't pop it until the end.
+                # Technically, this param will always remain.
+                elif has_varkwargs:
+                    if remaining_params_only: # skip populating args.
+                        continue
+                    kwargs[kwarg_name] = self.typed_eval(varkwarg_param, param_types)
                     continue
                 raise SyntaxError(f"Invalid parameter input: '{arg_block}' "
                                   f"for parameter: {next_param.name}.")
             except IndexError:
                 raise SyntaxError(f"Too many input arguments for the function: {func}.")
-        return args, kwargs, remaining_params
+        return args, kwargs, list(remaining_params.values())
 
-    #def parse_args_from_input(self, line, sep=" "):
-    #    """Parse line into args and kwargs with a custom delimiter.
-    #    Raise syntax error if the line is not parsable.
-    #    """
-    #    arg_blocks, completed = container_split(line, sep)
-    #    args = []
-    #    kwargs = {}
-
-    #    parsing_args = True
-    #    for arg_block in arg_blocks:
-    #        sub_block, _ = container_split(arg_block, '=')
-    #        if len(sub_block) == 1 and parsing_args:
-    #            args.append(sub_block[0])
-    #        elif len(sub_block) == 1 and not parsing_args:
-    #            raise SyntaxError("Args must be specified before kwargs.")
-    #        elif len(sub_block) == 2:
-    #            parsing_args = False
-    #            kwargs[sub_block[0]] = sub_block[1]
-    #        else:
-    #            raise SyntaxError(f"Unparsable input: '{line}'")
-    #    # completed will indicate if the last kwarg was fully input correctly.
-    #    return args, kwargs, completed
+    def get_remaining_params(self, func, arg_blocks, skip_self_or_cls = True):
+        return self.parse_args(func, arg_blocks, skip_self_or_cls=skip_self_or_cls,
+                               remaining_params_only=True)[2]
 
     def cmdloop(self, loop=True):
         """Repeatedly issue a prompt, accept input, and dispatch to action

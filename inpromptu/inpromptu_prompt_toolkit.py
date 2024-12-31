@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Prompt-toolkit implementation of Inpromptu."""
 
+from inspect import _ParameterKind as ParamKind
 from prompt_toolkit import prompt, PromptSession
 from prompt_toolkit.shortcuts import CompleteStyle
 from prompt_toolkit.completion import Completer, Completion
+from prompt_toolkit import print_formatted_text as print
 from .inpromptu_base import InpromptuBase
 from .inpromptu_base import container_split
 
@@ -68,15 +70,14 @@ class Inpromptu(InpromptuBase):
             self.func_params = [p.name for p in param_objects]
 
             # Now generate completion list for params not yet entered.
-            for param_name in self.func_params:
-                completion = f"{param_name}="
+            for param in param_objects:
+                completion = f"{param.name}="
                 # No space case: <kwarg_name>=<value> is partially typed or fully typed but missing a space.
-                if line[-1] != self.__class__.DELIM and \
-                    param_entries[-1].startswith(completion):
+                if line[-1] != self.__class__.DELIM and param_entries[-1].startswith(completion):
                     partial_val_text = param_entries[-1].split('=')[-1]
                     func_param_completions = \
                         self._get_param_options(self.func_name,
-                                                param_name,
+                                                param.name,
                                                 partial_val_text)
                     completions = [completion+v for v in func_param_completions]
                     display = {completion+v:v for v in func_param_completions}
@@ -94,12 +95,20 @@ class Inpromptu(InpromptuBase):
                 # regular check
                 if completion.startswith(word) and not skip:
                     completions.append(completion)
-                    arg_types = self.omm.method_defs[self.func_name]['parameters'][param_name]['types']
+                    arg_types = self.omm.method_defs[self.func_name]['parameters'][param.name]['types']
                     arg_types_str = "|".join([a.__name__ for a in arg_types])
                     display[completion] = completion + f"<{arg_types_str}>"
+                # Exit early: provide required args one-at-a-time so we complete
+                # them in order.
+                if param.default == param.empty:
+                    break
 
         # Finally, yield any completions.
         for completion in completions:
+            # Note: it's possible to inject custom print statements here.
+            # TODO: we could display the whole function signature and cross off already-entered arguments.
+            # FIXME: if args are required (i.e: no default), do not display
+            #   kwargs that follow as completion options.
             yield Completion(completion,
                              start_position=-len(word),
                              display=display.get(completion, completion),
