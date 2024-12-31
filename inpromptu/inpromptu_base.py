@@ -15,7 +15,6 @@ from .object_method_manager import ObjectMethodManager
 from .errors import UserInputError
 
 
-# FIXME: should container_split('key=', '=') return (['key=', ''], True) or (['key='], False) ?
 # helper function for splitting user input containing nested {}, [], (), '', "".
 def container_split(s: str, sep: str = " "):
     """split that splits on spaces while handling nested "", '', {}, [].
@@ -111,59 +110,6 @@ class InpromptuBase(ABC):
             if param.startswith(partial_val_text):
                 func_param_completions.append(param)
         return func_param_completions
-
-    #def get_remaining_params(self, func, arg_blocks, skip_self_or_cls = True):
-    #    """For a given function and given list of arguments, return the
-    #    remaining parameters.
-
-    #    Raise SyntaxError if input params are invalid.
-    #    """
-    #    positional_params = [ParamKind.POSITIONAL_ONLY, ParamKind.POSITIONAL_OR_KEYWORD]
-    #    keyword_params = [ParamKind.POSITIONAL_OR_KEYWORD, ParamKind.KEYWORD_ONLY]
-    #    sig = signature(func)
-    #    remaining_params = list(sig.parameters.values())
-
-    #    if skip_self_or_cls and remaining_params \
-    #        and remaining_params[0].name in ['self', 'cls']:
-    #        remaining_params.pop(0)
-    #    # Handle bail-early case.
-    #    if not len(remaining_params) and not arg_blocks:
-    #        return []
-    #    # Handle remaining cases.
-    #    # Match param to input (arg or kwarg).
-    #    parsing_kwargs = False  # Used to enforce args before kwargs
-    #    for index, arg_block in enumerate(arg_blocks):
-    #        sub_block, finished = container_split(arg_block, '=')
-    #        last_block = (index == (len(arg_blocks) - 1))
-    #        input_is_kwarg = len(sub_block) == 2
-    #        parsing_kwargs = input_is_kwarg or parsing_kwargs
-    #        next_param = remaining_params[0]
-    #        try:
-    #            # arg cases
-    #            if not parsing_kwargs:
-    #                if next_param.kind in positional_params:
-    #                    remaining_params.pop(0)
-    #                    continue
-    #                if next_param.kind == ParamKind.VAR_POSITIONAL:
-    #                    continue
-    #            # kwarg cases.
-    #            # Remove any *args present as soon as we start seeing kwargs.
-    #            if parsing_kwargs and next_param.kind == ParamKind.VAR_POSITIONAL:
-    #                remaining_params.pop(0)
-    #                next_param = remaining_params[0]
-    #            # Ensure final kwarg was fully entered. i.e: something after '='
-    #            if last_block and (not finished or (sub_block[1] == "")):
-    #                continue
-    #            if next_param.kind in keyword_params:
-    #                remaining_params.pop(0)
-    #                continue
-    #            if next_param.kind == ParamKind.VAR_KEYWORD:
-    #                continue
-    #            raise SyntaxError(f"Invalid parameter input: '{arg_block}' "
-    #                              f"for parameter: {next_param.name}.")
-    #        except IndexError:
-    #            raise SyntaxError(f"Too many input arguments for the function: {func}.")
-    #    return remaining_params
 
     @staticmethod
     def get_types(param: Parameter):
